@@ -26,7 +26,7 @@ export default function LandingPage() {
 
         <div className="flex gap-4">
           <a 
-            href="/scan" 
+            href="/login" 
             className="px-10 py-5 bg-gray-900 text-white font-bold rounded-2xl hover:bg-black transition-all shadow-2xl hover:scale-105 text-lg"
           >
             Mulai Pemindaian
