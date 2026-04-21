@@ -29,7 +29,7 @@ export default function DashboardPage() {
           <a href="#" className="flex items-center px-6 py-3 bg-gray-100 border-l-4 border-green-600 text-green-700 font-bold">
             <span className="mr-3">Dashboard</span>
           </a>
-          <a href="#" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
+          <a href="/inventory" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
             <span className="mr-3">Inventori</span> 
           </a>
           <a href="#" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
