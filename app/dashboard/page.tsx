@@ -154,37 +154,57 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-              <h3 className="font-medium mb-6">Sensor real-time</h3>
+            {/* ── SENSOR REAL-TIME (DARK THEME) ── */}
+            <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-slate-300/20 relative overflow-hidden flex flex-col justify-between min-h-[400px]">
               
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <div className="bg-white p-3 rounded-xl border border-gray-100 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Berat</p>
-                  <p className="font-medium">{sensorRealtime.berat} g</p>
-                </div>
-                <div className="bg-white p-3 rounded-xl border border-gray-100 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Gas</p>
-                  <p className="font-medium">{sensorRealtime.gas}</p>
-                </div>
-                <div className="bg-white p-3 rounded-xl border border-gray-100 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Jarak</p>
-                  <p className="font-medium">{sensorRealtime.jarak} cm</p>
-                </div>
-              </div>
+              {/* Efek Gradasi Halus di Background */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 blur-[80px]" />
 
-              <div className="bg-white p-4 rounded-xl border border-gray-100">
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl shrink-0">🍎</div>
-                  <div>
-                    <p className="font-bold text-sm mb-1">Apel - 150 g</p>
-                    <p className="text-xs text-gray-600 mb-2">52 kkal, C:13.8g, P:0.3g, L:0.2g</p>
-                    <p className="text-[10px] text-gray-500 leading-tight">Saran menu: Pie apel, Salad buah</p>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-lg font-black tracking-tight flex items-center gap-3">
+                    {/* Kotak Merah Kelap Kelip */}
+                    <div className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
+                    </div>
+                    Sensor Real-time
+                  </h3>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4 mb-8 text-center">
+                  <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-tighter">Berat</p>
+                    <p className="font-black text-sm">{sensorRealtime.berat}g</p>
+                  </div>
+                  <div className="bg-white/5 backdrop-blur-md p-3 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-tighter">Gas</p>
+                    <p className="font-black text-sm text-green-400">{sensorRealtime.gas}</p>
+                  </div>
+                  <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-tighter">Jarak</p>
+                    <p className="font-black text-sm">{sensorRealtime.jarak}cm</p>
                   </div>
                 </div>
               </div>
 
-            </div>
-          </div>
+              {/* Detail Bahan Terdeteksi */}
+              <div className="bg-white/5 backdrop-blur-xl p-7 rounded-3xl border border-white/10 shadow-inner relative z-10">
+                <div className="flex gap-4 items-center">
+                  <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/5 shrink-0">
+                    🍎
+                  </div>
+                  <div className="text-left">
+                    <p className="font-black text-lg text-white leading-none mb-1.5 tracking-tight text-left">Apel - {sensorRealtime.berat}g</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase leading-none tracking-widest mb-3 text-left">52 kkal • C:13.8g • P:0.3g</p>
+                    <div className="pt-3 border-t border-white/5 text-left">
+                      <p className="text-[10px] text-green-400 font-black uppercase tracking-tighter">Saran: Pie apel, Salad buah</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div> 
+          </div> 
         </div>
       </main>
     </div>
