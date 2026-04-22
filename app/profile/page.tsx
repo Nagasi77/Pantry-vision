@@ -89,39 +89,38 @@ export default function ProfilePage() {
         </nav>
       </aside>
 
-      {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 flex flex-col overflow-y-auto">
-        
-        <header className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 flex items-center justify-between px-10">
-          <h2 className="text-xl font-black text-slate-800 tracking-tighter">Profile</h2>
-          
-          {/* HEADER PROFILE DROPDOWN (Ramping) */}
-          <div className="relative" ref={dropdownRef}>
-            <button 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`flex items-center gap-2.5 p-1 pr-3 rounded-xl transition-all duration-300 ${
-                isDropdownOpen ? "bg-white shadow-sm ring-1 ring-slate-100" : "bg-slate-50/50 border border-slate-100 hover:bg-white"
-              }`}
-            >
-              <div className="w-8 h-8 bg-green-100 text-green-700 font-bold rounded-lg border border-white flex items-center justify-center text-xs uppercase shadow-sm">
-                {getInitial(user.fullname)}
-              </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-[10px] font-black text-slate-800 leading-none mb-0.5 tracking-tight">{user.fullname}</p>
-                <div className="flex items-center gap-1">
-                  <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                  <p className="text-[8px] text-green-600 font-bold uppercase tracking-tighter">Online</p>
-                </div>
-              </div>
-              <ChevronDown size={12} className={`text-slate-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
+                {/* ── MAIN CONTENT ── */}
+                <main className="flex-1 flex flex-col overflow-y-auto">
+                  
+                  <header className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 flex items-center justify-between px-10">
+                    <h2 className="text-xl font-black text-slate-800 tracking-tighter">Profile</h2>
+                    
+                  {/* HEADER PROFILE DROPDOWN (Ramping) */}
+                  <div className="relative" ref={dropdownRef}>
+                    <button 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className={`flex items-center gap-2.5 p-1 pr-1 rounded-xl transition-all duration-300 ${
+                        isDropdownOpen ? "bg-white shadow-sm ring-1 ring-slate-100" : "bg-slate-50/50 border border-slate-100 hover:bg-white"
+                      }`}
+                    >
+                      <div className="w-8 h-8 bg-green-100 text-green-700 font-bold rounded-lg border border-white flex items-center justify-center text-xs uppercase shadow-sm">
+                        {getInitial(user.fullname)}
+                      </div>
+                    </button>
 
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-50 py-1.5 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-                <div className="px-4 py-2.5 border-b border-slate-50 mb-1">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Akun Aktif</p>
-                  <p className="text-xs font-bold text-slate-800 truncate">{user.fullname}</p>
-                  <p className="text-[10px] text-slate-500 truncate font-medium">{user.email}</p>
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-50 py-4 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                      
+                      {/* BAGIAN TENGAH (AVATAR & INFO) */}
+                      <div className="flex flex-col items-center text-center px-4 pb-4 border-b border-slate-50 mb-2">
+                        {/* Avatar Inisial di Tengah */}
+                        <div className="w-12 h-12 bg-green-100 text-green-700 font-black rounded-2xl border-2 border-white flex items-center justify-center text-lg uppercase shadow-sm mb-3">
+                          {getInitial(user.fullname)}
+                        </div>
+                  
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Akun Aktif</p>
+                  <p className="text-sm font-black text-slate-800 leading-tight">{user.fullname}</p>
+                  <p className="text-[10px] text-slate-500 font-medium truncate w-full">{user.email}</p>
                 </div>
                 <div className="px-1.5 space-y-0.5">
                   <button 
