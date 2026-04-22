@@ -1,7 +1,23 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { 
+  LayoutDashboard, Package, Activity, Scan, 
+  History, User, LogOut, ChevronDown 
+} from 'lucide-react'
 
 export default function DashboardPage() {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const navItemStyle = (path: string) => 
+    `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 group ${
+      pathname === path 
+      ? "bg-green-600 text-white shadow-lg shadow-green-100 translate-x-1" 
+      : "text-slate-500 hover:bg-slate-50 hover:text-green-600"
+    }`
+
   const [sensorRealtime, setSensorRealtime] = useState({
     berat: 150,
     gas: 'Normal',
@@ -16,41 +32,54 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 text-gray-900 font-sans">
-      
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <a href="/" className="flex items-center gap-2">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <h1 className="font-bold text-lg">Pantry Vision</h1>
+      {/* ── SIDEBAR── */}
+      <aside className="w-72 bg-white border-r border-slate-100 flex flex-col shrink-0 sticky top-0 h-screen shadow-sm z-20">
+        {/* Logo Section */}
+        <div className="h-20 flex items-center px-8 gap-3 border-b border-slate-50">
+          <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
+            <Package className="text-white w-5 h-5" />
+          </div>
+          <span className="font-bold text-xl tracking-tight text-slate-800">Pantry Vision</span>
         </div>
-        </a>
         
-        <nav className="flex-1 py-6">
-          <p className="px-6 text-xs font-bold text-green-600 mb-2">Utama</p>
-          <a href="#" className="flex items-center px-6 py-3 bg-gray-100 border-l-4 border-green-600 text-green-700 font-bold">
-            <span className="mr-3">Dashboard</span>
-          </a>
-          <a href="/inventory" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
-            <span className="mr-3">Inventori</span> 
-          </a>
-          <a href="#" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
-            <span className="mr-3">Sensor</span> 
-          </a>
-          <a href="/scan" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
-            <span className="mr-3">Scan</span> 
-          </a>
-          <a href="#" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
-            <span className="mr-3">Riwayat Scan</span> 
-          </a>
-          
-          <p className="px-6 text-xs font-bold text-gray-400 mb-2 mt-8">Akun</p>
-          <a href="/profile" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
-            <span className="mr-3">Profile</span> 
-          </a>
-          <a href="#" className="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium">
-            <span className="mr-3">LogOut</span> 
-          </a>
-        </nav>
-      </aside>
+          {/* ── Navigation Section ── */}
+          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+            <p className="px-4 text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.2em]">Menu Utama</p>
+            
+            <Link href="/dashboard" className={navItemStyle('/dashboard')}>
+              <LayoutDashboard size={20}/> 
+              <span className="font-bold text-sm tracking-tight">Dashboard</span>
+            </Link>
+            
+            <Link href="/inventori" className={navItemStyle('/inventori')}>
+              <Package size={20}/> 
+              <span className="font-bold text-sm tracking-tight">Inventori</span>
+            </Link>
+            
+            <Link href="/sensor" className={navItemStyle('/sensor')}>
+              <Activity size={20}/> 
+              <span className="font-bold text-sm tracking-tight">Sensor</span>
+            </Link>
+            
+            <Link href="/scan" className={navItemStyle('/scan')}>
+              <Scan size={20}/> 
+              <span className="font-bold text-sm tracking-tight">Scan</span>
+            </Link>
+            
+            <Link href="/riwayat" className={navItemStyle('/riwayat')}>
+              <History size={20}/> 
+              <span className="font-bold text-sm tracking-tight">Riwayat Scan</span>
+            </Link>
+            
+            <div className="pt-4 border-t border-slate-50 mt-3">
+              <p className="px-4 text-[10px] font-black text-slate-400 mb-1 uppercase tracking-[0.2em]">Akun</p>
+              <Link href="/profile" className={navItemStyle('/profile')}>
+                <User size={20}/> 
+                <span className="font-bold text-sm tracking-tight">Profile</span>
+              </Link>
+            </div>
+          </nav>
+        </aside>
 
       <main className="flex-1 flex flex-col">
         
