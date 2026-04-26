@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   LayoutDashboard, Package, Activity, Scan, 
-  History, User, LogOut, ChevronDown, ChevronRight, Search 
+  History, User, LogOut, ChevronDown, ChevronRight, Search , AlertCircle
 } from "lucide-react";
 
 const dummyInventory = [
@@ -29,6 +29,8 @@ export default function InventoryPage() {
   const [selected, setSelected] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [user] = useState({ fullname: "Muhammad Dimas Ajie", email: "mahasiswa123@gmail.com" });
+
+  const getInitial = (name: string) => name.charAt(0).toUpperCase()
 
   const filtered = dummyInventory.filter((item) =>
     item.name.toLowerCase().includes(search.toLowerCase())
@@ -64,64 +66,74 @@ export default function InventoryPage() {
     }`;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F8FAFC] text-slate-900 font-sans">
+    <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
       
-      {/* ── SIDEBAR PREMIUM ── */}
-      <aside className="w-72 bg-white border-r border-slate-100 flex flex-col shrink-0 sticky top-0 h-screen shadow-sm z-20">
-        <div className="h-20 flex items-center px-8 gap-3 border-b border-slate-50">
-          <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
-            <Package className="text-white w-5 h-5" />
+      {/* ── SIDEBAR ── */}
+      <aside className="fixed top-0 left-0 w-72 h-screen bg-white border-r border-slate-100 shadow-sm z-20 flex flex-col">
+          <div className="h-20 flex items-center px-8 gap-3 border-b border-slate-50">
+            <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
+              <Package className="text-white w-5 h-5" />
+            </div>
+            <span className="font-bold text-xl tracking-tight text-slate-800">
+              Pantry Vision
+            </span>
           </div>
-          <span className="font-black text-xl tracking-tight text-slate-800">Pantry Vision</span>
-        </div>
-        
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          <p className="px-4 text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.2em]">Menu Utama</p>
-          <Link href="/dashboard" className={navItemStyle('/dashboard')}>
-            <LayoutDashboard size={20}/> <span className="font-bold text-sm tracking-tight">Dashboard</span>
-          </Link>
-          <Link href="/inventori" className={navItemStyle('/inventori')}>
-            <Package size={20}/> <span className="font-bold text-sm tracking-tight">Inventori</span>
-          </Link>
-          <Link href="/sensor" className={navItemStyle('/sensor')}>
-            <Activity size={20}/> <span className="font-bold text-sm tracking-tight">Sensor</span>
-          </Link>
-          <Link href="/scan" className={navItemStyle('/scan')}>
-            <Scan size={20}/> <span className="font-bold text-sm tracking-tight">Scan</span>
-          </Link>
-          <Link href="/riwayat" className={navItemStyle('/riwayat')}>
-            <History size={20}/> <span className="font-bold text-sm tracking-tight">Riwayat Scan</span>
-          </Link>
-          
-          <div className="pt-8 border-t border-slate-50 mt-4">
-            <p className="px-4 text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.2em]">Akun</p>
-            <Link href="/profile" className={navItemStyle('/profile')}>
-              <User size={20}/> <span className="font-bold text-sm tracking-tight">Profile</span>
+
+          <nav className="flex-1 px-4 py-6 space-y-1">
+            <p className="px-4 text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em]">
+              Menu Utama
+            </p>
+
+            <Link href="/dashboard" className={navItemStyle('/dashboard')}>
+              <LayoutDashboard size={20}/> <span>Dashboard</span>
             </Link>
+
+            <Link href="/inventori" className={navItemStyle('/inventori')}>
+              <Package size={20}/> <span>Inventori</span>
+            </Link>
+
+            <Link href="/sensor" className={navItemStyle('/sensor')}>
+              <Activity size={20}/> <span>Sensor</span>
+            </Link>
+
+            <Link href="/scan" className={navItemStyle('/scan')}>
+              <Scan size={20}/> <span>Scan</span>
+            </Link>
+
+            <Link href="/riwayat" className={navItemStyle('/riwayat')}>
+              <History size={20}/> <span>Riwayat Scan</span>
+            </Link>
+
+            <div className="pt-8 border-t border-slate-50 mt-4">
+            <p className="px-4 text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em]">Akun</p>
+            <Link href="/profile" className={navItemStyle('/profile')}><User size={20} /> <span>Profile</span></Link>
           </div>
-        </nav>
-      </aside>
+          </nav>
+        </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* HEADER WITH PROFILE DROPDOWN */}
-        <header className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 flex items-center justify-between px-10 shrink-0">
+      <main className="ml-72 mt-20 flex-1 flex flex-col overflow-y-auto">
+        <header className="fixed top-0 left-72 right-0 h-20 bg-white/80 backdrop-blur-md z-30 border-b border-slate-100 flex items-center justify-between px-10">
           <h2 className="text-xl font-black text-slate-800 tracking-tighter">Inventori</h2>
           
           <div className="relative" ref={dropdownRef}>
             <button 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`flex items-center gap-2.5 p-1 rounded-xl transition-all ${
-                isDropdownOpen ? "bg-white shadow-sm ring-1 ring-slate-100" : "bg-slate-50 hover:bg-white"
-              }`}
-            >
-              <div className="w-8 h-8 bg-green-100 text-green-700 font-bold rounded-lg flex items-center justify-center text-xs uppercase shadow-sm">M</div>
-            </button>
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className={`flex items-center gap-2.5 p-1 pr-1 rounded-xl transition-all duration-300 ${
+                        isDropdownOpen ? "bg-white shadow-sm ring-1 ring-slate-100" : "bg-slate-50/50 border border-slate-100 hover:bg-white"
+                      }`}
+                    >
+                      <div className="w-8 h-8 bg-green-100 text-green-700 font-bold rounded-lg border border-white flex items-center justify-center text-xs uppercase shadow-sm">
+                        {getInitial(user.fullname)}
+                      </div>
+                    </button>
 
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 py-4 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                 <div className="flex flex-col items-center text-center px-4 pb-4 border-b border-slate-50 mb-2">
-                  <div className="w-12 h-12 bg-green-100 text-green-700 font-black rounded-2xl border-2 border-white flex items-center justify-center text-lg shadow-sm mb-3 uppercase">M</div>
+                  <div className="w-12 h-12 bg-green-100 text-green-700 font-black rounded-2xl border-2 border-white flex items-center justify-center text-lg shadow-sm mb-3 uppercase">
+                  {getInitial(user.fullname)}
+                </div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Akun Aktif</p>
                   <p className="text-sm font-black text-slate-800 truncate w-full">{user.fullname}</p>
                   <p className="text-[10px] text-slate-500 font-medium truncate w-full">{user.email}</p>

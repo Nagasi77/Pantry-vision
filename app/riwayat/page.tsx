@@ -211,7 +211,7 @@ export default function RiwayatPage() {
         <nav className="flex-1 px-4 py-6 space-y-1">
           <p className="px-4 text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em]">Menu Utama</p>
           <Link href="/dashboard" className={navItemStyle('/dashboard')}><LayoutDashboard size={20} /> <span>Dashboard</span></Link>
-          <Link href="/inventory" className={navItemStyle('/inventory')}><Package size={20} /> <span>Inventori</span></Link>
+          <Link href="/inventori" className={navItemStyle('/inventori')}><Package size={20} /> <span>Inventori</span></Link>
           <Link href="/sensor"    className={navItemStyle('/sensor')}><Activity size={20} /> <span>Sensor</span></Link>
           <Link href="/scan"      className={navItemStyle('/scan')}><Scan size={20} /> <span>Scan</span></Link>
           <Link href="/riwayat"   className={navItemStyle('/riwayat')}><History size={20} /> <span>Riwayat Scan</span></Link>
@@ -227,7 +227,7 @@ export default function RiwayatPage() {
                 <main className="flex-1 flex flex-col overflow-y-auto">
                   
                   <header className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 flex items-center justify-between px-10">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tighter">Profile</h2>
+                    <h2 className="text-xl font-black text-slate-800 tracking-tighter">Riwayat Scan</h2>
                     
                   {/* HEADER PROFILE DROPDOWN (Ramping) */}
                   <div className="relative" ref={dropdownRef}>
@@ -248,9 +248,9 @@ export default function RiwayatPage() {
                       {/* BAGIAN TENGAH (AVATAR & INFO) */}
                       <div className="flex flex-col items-center text-center px-4 pb-4 border-b border-slate-50 mb-2">
                         {/* Avatar Inisial di Tengah */}
-                        <div className="w-12 h-12 bg-green-100 text-green-700 font-black rounded-2xl border-2 border-white flex items-center justify-center text-lg uppercase shadow-sm mb-3">
-                          {getInitial(user.fullname)}
-                        </div>
+                        <div className="w-12 h-12 bg-green-100 text-green-700 font-black rounded-2xl border-2 border-white flex items-center justify-center text-lg shadow-sm mb-3 uppercase">
+                        {getInitial(user.fullname)}
+                      </div>
                   
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Akun Aktif</p>
                   <p className="text-sm font-black text-slate-800 leading-tight">{user.fullname}</p>

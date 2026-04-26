@@ -31,9 +31,9 @@ export default function DashboardPage() {
   const getInitial = (name: string) => name.charAt(0).toUpperCase()
 
   const navItemStyle = (path: string) => 
-    `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 group ${
+    `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 ${
       pathname === path 
-      ? "bg-green-600 text-white shadow-lg shadow-green-100 translate-x-1" 
+      ? 'bg-green-600 text-white shadow-lg'
       : "text-slate-500 hover:bg-slate-50 hover:text-green-600"
     }`
 
@@ -42,37 +42,46 @@ export default function DashboardPage() {
       
       {/* ── SIDEBAR ── */}
       <aside className="w-72 bg-white border-r border-slate-100 flex flex-col shrink-0 sticky top-0 h-screen shadow-sm z-20">
-        <div className="h-20 flex items-center px-8 gap-3 border-b border-slate-50">
-          <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
-            <Package className="text-white w-5 h-5" />
+          <div className="h-20 flex items-center px-8 gap-3 border-b border-slate-50">
+            <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
+              <Package className="text-white w-5 h-5" />
+            </div>
+            <span className="font-bold text-xl tracking-tight text-slate-800">
+              Pantry Vision
+            </span>
           </div>
-          <span className="font-black text-xl tracking-tight text-slate-800">Pantry Vision</span>
-        </div>
-        
-          <p className="px-4 text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.2em]">Menu Utama</p>
-          <Link href="/dashboard" className={navItemStyle('/dashboard')}>
-            <LayoutDashboard size={20}/> <span className="font-bold text-sm tracking-tight">Dashboard</span>
-          </Link>
-          <Link href="/inventori" className={navItemStyle('/inventori')}>
-            <Package size={20}/> <span className="font-bold text-sm tracking-tight">Inventori</span>
-          </Link>
-          <Link href="/sensor" className={navItemStyle('/sensor')}>
-            <Activity size={20}/> <span className="font-bold text-sm tracking-tight">Sensor</span>
-          </Link>
-          <Link href="/scan" className={navItemStyle('/scan')}>
-            <Scan size={20}/> <span className="font-bold text-sm tracking-tight">Scan</span>
-          </Link>
-          <Link href="/riwayat" className={navItemStyle('/riwayat')}>
-            <History size={20}/> <span className="font-bold text-sm tracking-tight">Riwayat Scan</span>
-          </Link>
-          
-          <div className="pt-8 border-t border-slate-50 mt-4">
-            <p className="px-4 text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.2em]">Akun</p>
-            <Link href="/profile" className={navItemStyle('/profile')}>
-              <User size={20}/> <span className="font-bold text-sm tracking-tight">Profile</span>
+
+          <nav className="flex-1 px-4 py-6 space-y-1">
+            <p className="px-4 text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em]">
+              Menu Utama
+            </p>
+
+            <Link href="/dashboard" className={navItemStyle('/dashboard')}>
+              <LayoutDashboard size={20}/> <span>Dashboard</span>
             </Link>
+
+            <Link href="/inventori" className={navItemStyle('/inventori')}>
+              <Package size={20}/> <span>Inventori</span>
+            </Link>
+
+            <Link href="/sensor" className={navItemStyle('/sensor')}>
+              <Activity size={20}/> <span>Sensor</span>
+            </Link>
+
+            <Link href="/scan" className={navItemStyle('/scan')}>
+              <Scan size={20}/> <span>Scan</span>
+            </Link>
+
+            <Link href="/riwayat" className={navItemStyle('/riwayat')}>
+              <History size={20}/> <span>Riwayat Scan</span>
+            </Link>
+
+            <div className="pt-8 border-t border-slate-50 mt-4">
+            <p className="px-4 text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em]">Akun</p>
+            <Link href="/profile" className={navItemStyle('/profile')}><User size={20} /> <span>Profile</span></Link>
           </div>
-      </aside>
+          </nav>
+        </aside>
 
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col overflow-y-auto">
@@ -80,11 +89,16 @@ export default function DashboardPage() {
           <h2 className="text-xl font-black text-slate-800 tracking-tighter">Dashboard</h2>
           
           <div className="relative" ref={dropdownRef}>
-            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="p-1 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-all">
-              <div className="w-8 h-8 bg-green-100 text-green-700 font-bold rounded-lg flex items-center justify-center text-xs uppercase shadow-sm">
-                {getInitial(user.fullname)}
-              </div>
-            </button>
+            <button 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className={`flex items-center gap-2.5 p-1 pr-1 rounded-xl transition-all duration-300 ${
+                        isDropdownOpen ? "bg-white shadow-sm ring-1 ring-slate-100" : "bg-slate-50/50 border border-slate-100 hover:bg-white"
+                      }`}
+                    >
+                      <div className="w-8 h-8 bg-green-100 text-green-700 font-bold rounded-lg border border-white flex items-center justify-center text-xs uppercase shadow-sm">
+                        {getInitial(user.fullname)}
+                      </div>
+                    </button>
 
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 py-4 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
