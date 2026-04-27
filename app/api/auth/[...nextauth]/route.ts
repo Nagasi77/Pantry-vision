@@ -1,18 +1,22 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import GitHubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { signIn as firebaseSignIn, signInWithGoogle } from "../../../lib/service"
 import bcrypt from "bcryptjs"
 
 export const authOptions = {
   providers: [
-    // 1. PROVIDER GOOGLE
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+
+    GitHubProvider({
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
+    }),
     
-    // 2. PROVIDER EMAIL & PASSWORD
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -22,18 +26,16 @@ export const authOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
         
-        // Ambil data user dari Firestore via service.ts
         const user: any = await firebaseSignIn(credentials.email)
         
         if (user && user.password) {
-          // Cek apakah password cocok
           const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password)
           if (isPasswordCorrect) {
             return { 
               id: user.id, 
               name: user.username, 
               email: user.email, 
-              role: user.role 
+              role: user.role || "user" // Default role jika tidak ada
             }
           }
         }
@@ -41,6 +43,7 @@ export const authOptions = {
       }
     })
   ],
+
   callbacks: {
     async jwt({ token, user }: any) {
       if (user) {
@@ -57,26 +60,38 @@ export const authOptions = {
     },
 
     async signIn({ user, account }: any) {
-      if (account.provider === "google") {
+      if (account.provider === "google" || account.provider === "github") {
         const data = {
           email: user.email,
           username: user.name,
           image: user.image,
         }
-        await signInWithGoogle(data, (result: any) => {
-          return result.status
-        })
+
+        try {
+          await signInWithGoogle(data, (result: any) => {
+            return result.status
+          })
+          return true
+        } catch (error) {
+          console.error("Gagal sinkronisasi data ke Firebase:", error)
+          return true 
+        }
       }
       return true
     }
   },
+
   pages: {
-    signIn: "/login",
+    signIn: "/login", 
   },
+
+  session: {
+    strategy: "jwt" as const, 
+  },
+
   secret: process.env.NEXTAUTH_SECRET,
 }
 
 const handler = NextAuth(authOptions)
-
 
 export { handler as GET, handler as POST }
