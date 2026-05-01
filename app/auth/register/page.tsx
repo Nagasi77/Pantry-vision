@@ -24,7 +24,7 @@ export default function RegisterPage() {
       })
 
       if (res.ok) {
-        router.push("/login")
+        router.push("/auth/login")
       } else {
         const data = await res.json()
         setError(data.message || "Gagal mendaftarkan akun.")
@@ -37,69 +37,64 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-slate-900/50 backdrop-blur-xl py-10 px-6 shadow-2xl border border-white/5 sm:rounded-[2.5rem] sm:px-12">
+    <div className="bg-slate-900/50 backdrop-blur-xl py-10 px-6 shadow-2xl border border-white/5 sm:rounded-[2.5rem] sm:px-12 w-full max-w-md mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-black text-white tracking-tighter">
           Pantry<span className="text-green-500">Vision.</span>
         </h1>
-        <p className="mt-2 text-sm text-slate-400">Buat akun baru Anda</p>
+        <p className="mt-2 text-sm text-slate-400 font-medium">Buat akun baru Anda</p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-2xl text-red-500 text-xs font-bold text-center uppercase tracking-widest">
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-2xl text-red-500 text-[10px] font-bold text-center uppercase tracking-widest">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleRegister} className="space-y-5">
-        <div>
-          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">Username</label>
-          <input
-            type="text"
-            required
-            className="block w-full px-5 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+      <form onSubmit={handleRegister} className="space-y-4">
+        {/* Input Username */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username</label>
+          <input 
+            type="text" required 
+            className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none transition-all"
             value={form.username}
             onChange={e => setForm({...form, username: e.target.value})}
           />
         </div>
-
-        <div>
-          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">Email</label>
-          <input
-            type="email"
-            required
-            className="block w-full px-5 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+        
+        {/* Input Email */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
+          <input 
+            type="email" required 
+            className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none transition-all"
             value={form.email}
             onChange={e => setForm({...form, email: e.target.value})}
           />
         </div>
 
-        <div>
-          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">Password</label>
-          <input
-            type="password"
-            required
-            className="block w-full px-5 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+        {/* Input Password */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
+          <input 
+            type="password" required 
+            className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none transition-all"
             value={form.password}
             onChange={e => setForm({...form, password: e.target.value})}
           />
         </div>
 
-        <button
+        <button 
           disabled={isLoading}
-          className="w-full flex justify-center py-4 px-4 border border-transparent rounded-2xl shadow-lg shadow-green-900/20 text-sm font-black text-white bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all uppercase tracking-[0.2em] disabled:opacity-50"
+          className="w-full mt-4 bg-green-600 py-4 rounded-2xl font-black text-sm text-white shadow-xl hover:bg-green-500 transition-all disabled:opacity-50 uppercase tracking-widest"
         >
           {isLoading ? "Memproses..." : "Daftar Akun"}
         </button>
       </form>
 
-      <div className="mt-8 text-center">
-        <p className="text-sm text-slate-400">
-          Sudah punya akun?{" "}
-          <Link href="/auth/login" className="font-black text-green-400 hover:text-green-300 underline underline-offset-4 transition-colors">
-            Masuk Disini
-          </Link>
-        </p>
+      <div className="mt-8 text-center text-sm text-slate-400">
+        Sudah punya akun? <Link href="/login" className="text-green-400 font-black underline underline-offset-4">Masuk</Link>
       </div>
     </div>
   )

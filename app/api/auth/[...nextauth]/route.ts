@@ -2,8 +2,7 @@ import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import GitHubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { signIn as firebaseSignIn, signInWithGoogle } from "../../../lib/service"
-import bcrypt from "bcryptjs"
+import { supabase } from "../../../lib/supabase"
 
 export const authOptions = {
   providers: [
@@ -11,7 +10,6 @@ export const authOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-
     GitHubProvider({
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
@@ -26,20 +24,28 @@ export const authOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
         
-        const user: any = await firebaseSignIn(credentials.email)
-        
-        if (user && user.password) {
-          const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password)
-          if (isPasswordCorrect) {
-            return { 
-              id: user.id, 
-              name: user.username, 
-              email: user.email, 
-              role: user.role || "user" // Default role jika tidak ada
-            }
-          }
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
+        })
+
+        if (error || !data.user) {
+          console.error("Login Error:", error?.message)
+          return null
         }
-        return null
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', data.user.id)
+          .single()
+
+        return { 
+          id: data.user.id, 
+          name: profile?.full_name || data.user.email, 
+          email: data.user.email,
+          role: "user" 
+        }
       }
     })
   ],
@@ -48,6 +54,7 @@ export const authOptions = {
     async jwt({ token, user }: any) {
       if (user) {
         token.role = user.role
+        token.id = user.id
       }
       return token
     },
@@ -55,27 +62,16 @@ export const authOptions = {
     async session({ session, token }: any) {
       if (session.user) {
         session.user.role = token.role
+        session.user.id = token.id
       }
       return session
     },
 
     async signIn({ user, account }: any) {
+      // Logika untuk Social Login (OAuth)
       if (account.provider === "google" || account.provider === "github") {
-        const data = {
-          email: user.email,
-          username: user.name,
-          image: user.image,
-        }
 
-        try {
-          await signInWithGoogle(data, (result: any) => {
-            return result.status
-          })
-          return true
-        } catch (error) {
-          console.error("Gagal sinkronisasi data ke Firebase:", error)
-          return true 
-        }
+        return true
       }
       return true
     }
@@ -93,5 +89,4 @@ export const authOptions = {
 }
 
 const handler = NextAuth(authOptions)
-
 export { handler as GET, handler as POST }
