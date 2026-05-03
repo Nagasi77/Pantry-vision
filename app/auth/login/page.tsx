@@ -11,7 +11,7 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
@@ -20,6 +20,7 @@ function LoginForm() {
     const email = (target.elements.namedItem("email") as HTMLInputElement).value
     const password = (target.elements.namedItem("password") as HTMLInputElement).value
 
+    // Melakukan sign-in via NextAuth
     const res = await signIn("credentials", {
       redirect: false,
       email,
@@ -28,13 +29,15 @@ function LoginForm() {
     })
 
     if (!res?.error) {
+      // Jika berhasil, arahkan ke dashboard dan refresh untuk update session
       router.push(callbackUrl)
+      router.refresh() 
     } else {
       setIsLoading(false)
+      // Memberikan feedback jika kredensial salah atau email belum diverifikasi
       setError("Email atau password salah")
     }
   }
-
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl py-10 px-6 shadow-2xl border border-white/5 sm:rounded-[2.5rem] sm:px-12 w-full max-w-md mx-auto">
       <div className="text-center mb-8">

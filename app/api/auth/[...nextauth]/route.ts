@@ -2,7 +2,7 @@ import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import GitHubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { supabase } from "../../../lib/supabase"
+import { supabase } from "../../../lib/supabase" 
 
 export const authOptions = {
   providers: [
@@ -24,25 +24,29 @@ export const authOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
         
+        // 1. Sign in ke Supabase Auth
         const { data, error } = await supabase.auth.signInWithPassword({
           email: credentials.email,
           password: credentials.password,
         })
 
         if (error || !data.user) {
+          // Log ini akan muncul di terminal VS Code Anda
           console.error("Login Error:", error?.message)
           return null
         }
 
+        // 2. Ambil metadata dari tabel profiles (berdasarkan image_1b50e4.png)
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name')
           .eq('id', data.user.id)
           .single()
 
+        // 3. Kembalikan objek user untuk session NextAuth
         return { 
           id: data.user.id, 
-          name: profile?.full_name || data.user.email, 
+          name: profile?.full_name || data.user.user_metadata?.full_name || data.user.email, 
           email: data.user.email,
           role: "user" 
         }
@@ -68,11 +72,7 @@ export const authOptions = {
     },
 
     async signIn({ user, account }: any) {
-      // Logika untuk Social Login (OAuth)
-      if (account.provider === "google" || account.provider === "github") {
-
-        return true
-      }
+      // Izinkan semua login (OAuth & Credentials)
       return true
     }
   },
