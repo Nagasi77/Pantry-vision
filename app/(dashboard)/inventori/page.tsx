@@ -35,7 +35,6 @@ export default function InventoryPage() {
       const { data, error: fetchError } = await supabase
         .from("pantry_items")
         .select("*")
-        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;

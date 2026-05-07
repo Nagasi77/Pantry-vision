@@ -94,7 +94,7 @@ export default function RegisterPage() {
       </form>
 
       <div className="mt-8 text-center text-sm text-slate-400">
-        Sudah punya akun? <Link href="/login" className="text-green-400 font-black underline underline-offset-4">Masuk</Link>
+        Sudah punya akun? <Link href="/auth/login" className="text-green-400 font-black underline underline-offset-4">Masuk</Link>
       </div>
     </div>
   )

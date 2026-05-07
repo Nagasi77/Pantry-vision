@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, Activity, Scan, History, User } from 'lucide-react'
+import { LayoutDashboard, Package, Activity, Scan, History, BookOpen, User } from 'lucide-react'
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -29,6 +29,8 @@ export default function Sidebar() {
         <Link href="/sensor" className={navItemStyle('/sensor')}><Activity size={20}/> <span>Sensor</span></Link>
         <Link href="/scan" className={navItemStyle('/scan')}><Scan size={20}/> <span>Scan</span></Link>
         <Link href="/riwayat" className={navItemStyle('/riwayat')}><History size={20}/> <span>Riwayat Scan</span></Link>
+        <Link href="/infos" className={navItemStyle('/infos')}><BookOpen size={20}/> <span>Nutridex</span></Link>
+
 
         <div className="pt-8 border-t border-slate-50 mt-4">
           <p className="px-4 text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em]">Akun</p>

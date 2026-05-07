@@ -13,6 +13,7 @@ export default withAuth(mainMiddleware, [
   "/scan",
   "/riwayat",
   "/profile",
+  "/infos",
 ]);
 
 export const config = {
@@ -23,5 +24,6 @@ export const config = {
     "/scan/:path*",
     "/riwayat/:path*",
     "/profile/:path*",
+    "/infos/:path*",
   ],
 };
