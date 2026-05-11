@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Scan } from "lucide-react";
+import mqtt from "mqtt";
+
 
 // ─── Types & Constants ───────────────────────────────────────────────────────
 type FreshnessStatus = "fresh" | "medium" | "low";
@@ -133,10 +135,33 @@ export default function SensorPage() {
 
   const food = foods.find((f) => f.id === selectedId) ?? foods[0];
 
+
+  
+
   useEffect(() => {
-    const id = setInterval(() => setJarak(6 + Math.round(Math.random() * 3)), 2500);
-    return () => clearInterval(id);
-  }, []);
+  // Koneksi ke broker MQTT
+  const client = mqtt.connect("ws://test.mosquitto.org:8080"); 
+
+  client.on("connect", () => {
+    console.log("Terhubung ke MQTT");
+    client.subscribe("pantry/sensors"); // Topik yang dikirim ESP32
+  });
+
+  client.on("message", (topic, message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      if (data.jarak) {
+        setJarak(data.jarak); // Mengubah angka jarak di UI sesuai data ESP32
+      }
+    } catch (e) {
+      console.log("Gagal parse data sensor");
+    }
+  });
+
+  return () => {
+    if (client) client.end();
+  };
+}, []);
 
   const scanNew = useCallback(() => {
     if (isScanning) return;
