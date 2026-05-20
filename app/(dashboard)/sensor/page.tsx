@@ -173,12 +173,7 @@ export default function SensorPage() {
   return (
     <div className="w-full space-y-8 pb-16">
       {/* SENSOR CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Berat</p>
-          <p className="text-3xl font-black tracking-tighter text-slate-800 leading-none">0g</p>
-          <p className="text-[10px] font-bold text-red-400 uppercase italic mt-2">Sensor Offline</p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm">
           <p className="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Gas / Aroma</p>
           <span className={`text-3xl font-black tracking-tighter block leading-none ${gasFromSensor === "Normal" ? "text-green-600" : "text-orange-500"}`}>
