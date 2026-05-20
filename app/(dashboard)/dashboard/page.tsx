@@ -34,23 +34,30 @@ export default function DashboardPage() {
 
   // Gunakan useCallback agar fungsi stabil dan bisa dipanggil di useEffect
   const fetchDashboardData = useCallback(async (userId: string) => {
+    // Cek apakah userId valid UUID (sederhana)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
+    
+    if (!isUUID) {
+      console.error("User ID bukan UUID yang valid:", userId)
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       
-      // 1. Ambil Data Pantry
+      // 1. Ambil Data Pantry (semua user)
       const { data: items, error: pantryError } = await supabase
         .from('pantry_items')
         .select('*')
-        .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (pantryError) throw pantryError
 
-      // 2. Ambil Data History Scan
+      // 2. Ambil Data History Scan (semua user)
       const { count: scanCount, error: scanError } = await supabase
         .from('sensor_data')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
 
       if (scanError) throw scanError
 
@@ -76,9 +83,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Pastikan session dan user ID benar-benar sudah ada
-    if (status === "authenticated" && session?.user?.id) {
-      const userId = session.user.id
-      
+    const userId = session?.user?.id
+    if (status === "authenticated" && userId) {
       fetchDashboardData(userId)
 
       const channel = supabase
@@ -88,8 +94,7 @@ export default function DashboardPage() {
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'sensor_data',
-            filter: `user_id=eq.${userId}`
+            table: 'sensor_data'
           },
           (payload) => {
             setSensorRealtime({
@@ -105,7 +110,7 @@ export default function DashboardPage() {
         supabase.removeChannel(channel)
       }
     }
-  }, [session, status, fetchDashboardData])
+  }, [session?.user?.id, status, fetchDashboardData])
 
   // Tampilan Loading
   if (status === "loading" || (loading && inventory.length === 0)) {

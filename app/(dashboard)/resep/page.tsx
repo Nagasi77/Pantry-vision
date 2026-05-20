@@ -5,49 +5,48 @@ import { useSession } from 'next-auth/react'
 import { supabase } from '../../lib/supabase'
 import { getRecipesByIngredients } from '../../lib/recipeService'
 import { Loader2, Utensils, ChefHat, ArrowRight } from 'lucide-react'
+import { RecipeModal } from '../../../components/resep/RecipeModal'
 
 export default function ResepPage() {
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(true)
   const [recipes, setRecipes] = useState<any[]>([])
   const [availableItems, setAvailableItems] = useState<string[]>([])
+  const [selectedRecipe, setSelectedRecipe] = useState<any | null>(null)
 
   useEffect(() => {
     async function fetchInventoryAndRecipes() {
-      if (status === "authenticated" && session?.user?.id) {
-        try {
-          setLoading(true)
-          
-          // 1. Ambil bahan makanan yang "Segar" dari database
-          const { data: items, error } = await supabase
-            .from('pantry_items')
-            .select('item_name')
-            .eq('user_id', session.user.id)
-            .eq('freshness_status', 'Segar')
+      try {
+        setLoading(true)
+        
+        // 1. Ambil semua bahan makanan yang "Segar" (Publik)
+        const { data: items, error } = await supabase
+          .from('pantry_items')
+          .select('item_name')
+          .eq('freshness_status', 'Segar')
 
-          if (error) throw error
+        if (error) throw error
 
-          const itemNames = items?.map(i => i.item_name) || []
-          setAvailableItems(itemNames)
+        const itemNames = items?.map(i => i.item_name) || []
+        setAvailableItems(itemNames)
 
-          // 2. Dapatkan rekomendasi resep
-          const recommended = await getRecipesByIngredients(itemNames)
-          setRecipes(recommended)
-        } catch (err) {
-          console.error("Error fetching recipes:", err)
-        } finally {
-          setLoading(false)
-        }
+        // 2. Dapatkan rekomendasi resep berdasarkan semua bahan yang ada
+        const recommended = await getRecipesByIngredients(itemNames)
+        setRecipes(recommended)
+      } catch (err) {
+        console.error("Error fetching recipes:", err)
+      } finally {
+        setLoading(false)
       }
     }
 
     fetchInventoryAndRecipes()
-  }, [session, status])
+  }, [])
 
   if (status === "loading" || loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+        <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
         <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Mencari Inspirasi Masak...</p>
       </div>
     )
@@ -57,7 +56,7 @@ export default function ResepPage() {
     <div className="max-w-7xl mx-auto w-full space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col gap-2">
         <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-          <ChefHat className="text-blue-600" size={32} />
+          <ChefHat className="text-green-600" size={32} />
           Inspirasi Dapur
         </h2>
         <p className="text-slate-500 font-medium">Resep pilihan berdasarkan stok segar di pantry Anda.</p>
@@ -67,7 +66,7 @@ export default function ResepPage() {
         <div className="flex flex-wrap gap-2 mb-8">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mr-2 py-2">Bahan Anda:</span>
           {availableItems.map((item, idx) => (
-            <span key={idx} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-xs font-bold border border-blue-100">
+            <span key={idx} className="px-4 py-2 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100">
               {item}
             </span>
           ))}
@@ -84,7 +83,7 @@ export default function ResepPage() {
             <div key={recipe.id} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden hover:scale-[1.02] transition-all group">
               <div className="h-48 overflow-hidden relative">
                 <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase text-blue-600 shadow-sm">
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase text-green-600 shadow-sm">
                   {recipe.ingredients.length} Bahan
                 </div>
               </div>
@@ -100,7 +99,10 @@ export default function ResepPage() {
                     ))}
                   </div>
                 </div>
-                <button className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors">
+                <button 
+                  onClick={() => setSelectedRecipe(recipe)}
+                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
+                >
                   Lihat Resep <ArrowRight size={16} />
                 </button>
               </div>
@@ -113,6 +115,9 @@ export default function ResepPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL DETAIL RESEP */}
+      <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Scan } from "lucide-react";
-import mqtt from "mqtt";
+// import mqtt from "mqtt";
 
 
 // ─── Types & Constants ───────────────────────────────────────────────────────
@@ -139,29 +139,31 @@ export default function SensorPage() {
   
 
   useEffect(() => {
-  // Koneksi ke broker MQTT
-  const client = mqtt.connect("ws://test.mosquitto.org:8080"); 
+    /* 
+    // Koneksi ke broker MQTT
+    const client = mqtt.connect("ws://test.mosquitto.org:8080"); 
 
-  client.on("connect", () => {
-    console.log("Terhubung ke MQTT");
-    client.subscribe("pantry/sensors"); // Topik yang dikirim ESP32
-  });
+    client.on("connect", () => {
+      console.log("Terhubung ke MQTT");
+      client.subscribe("pantry/sensors"); // Topik yang dikirim ESP32
+    });
 
-  client.on("message", (topic, message) => {
-    try {
-      const data = JSON.parse(message.toString());
-      if (data.jarak) {
-        setJarak(data.jarak); // Mengubah angka jarak di UI sesuai data ESP32
+    client.on("message", (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        if (data.jarak) {
+          setJarak(data.jarak); // Mengubah angka jarak di UI sesuai data ESP32
+        }
+      } catch (e) {
+        console.log("Gagal parse data sensor");
       }
-    } catch (e) {
-      console.log("Gagal parse data sensor");
-    }
-  });
+    });
 
-  return () => {
-    if (client) client.end();
-  };
-}, []);
+    return () => {
+      if (client) client.end();
+    };
+    */
+  }, []);
 
   const scanNew = useCallback(() => {
     if (isScanning) return;

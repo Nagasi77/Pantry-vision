@@ -35,7 +35,7 @@ export async function getRecipesByIngredients(ingredients: string[]) {
   const recommendations = recipeDatabase.filter(recipe => 
     recipe.ingredients.some(reqIngredient => 
       ingredients.some(userIngredient => 
-        userIngredient.toLowerCase().includes(reqIngredient.toLowerCase())
+        userIngredient && userIngredient.toLowerCase().includes(reqIngredient.toLowerCase())
       )
     )
   );

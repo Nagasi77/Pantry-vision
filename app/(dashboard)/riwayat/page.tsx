@@ -17,14 +17,13 @@ export default function RiwayatScanPage() {
     try {
       setLoading(true)
 
-      // 1. Ambil data dari pantry_items milik user
+      // 1. Ambil data dari pantry_items (semua user)
       const { data: items, error: pantryError } = await supabase
         .from('pantry_items')
         .select(`
           *,
           categories (name)
         `)
-        .eq('user_id', userId)
         .order('last_scanned_at', { ascending: false })
 
       if (pantryError) throw pantryError

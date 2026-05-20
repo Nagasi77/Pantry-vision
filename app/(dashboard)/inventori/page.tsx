@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, AlertCircle, Loader2 } from "lucide-react";
+import { Search, AlertCircle, Loader2, Plus, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { supabase } from "../../lib/supabase";
 
@@ -26,6 +26,15 @@ export default function InventoryPage() {
   const [inventory, setInventory] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newItem, setNewItem] = useState({
+    item_name: "",
+    current_weight: 0,
+    unit: "gram",
+    quantity: 1,
+    freshness_status: "Segar",
+    icon: "📦"
+  });
 
   const fetchInventory = useCallback(async (userId: string) => {
     try {
@@ -48,11 +57,45 @@ export default function InventoryPage() {
     }
   }, []);
 
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session?.user?.id) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.from("pantry_items").insert([
+        {
+          ...newItem,
+          user_id: session.user.id,
+          created_at: new Date().toISOString(),
+          last_scanned_at: new Date().toISOString()
+        }
+      ]);
+
+      if (error) throw error;
+
+      setIsAddModalOpen(false);
+      setNewItem({
+        item_name: "",
+        current_weight: 0,
+        unit: "gram",
+        quantity: 1,
+        freshness_status: "Segar",
+        icon: "📦"
+      });
+      fetchInventory(session.user.id);
+    } catch (err: any) {
+      alert("Gagal menambah bahan: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (status === "authenticated" && session?.user?.id) {
       fetchInventory(session.user.id);
     }
-  }, [session, status, fetchInventory]);
+  }, [session?.user?.id, status, fetchInventory]);
 
   // Normalisasi freshness_status ke label yang konsisten
   const normalizeFreshness = (status: string | null): string => {
@@ -128,18 +171,26 @@ export default function InventoryPage() {
   return (
     <div className="space-y-8">
       {/* SEARCH BOX */}
-      <div className="relative group">
-        <Search
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-500 transition-colors"
-          size={18}
-        />
-        <input
-          type="text"
-          placeholder="Cari bahan makanan..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all font-medium text-sm"
-        />
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative group flex-1 w-full">
+          <Search
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-500 transition-colors"
+            size={18}
+          />
+          <input
+            type="text"
+            placeholder="Cari bahan makanan..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all font-medium text-sm"
+          />
+        </div>
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="w-full md:w-auto px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-slate-200 hover:shadow-green-100"
+        >
+          <Plus size={18} /> Tambah Manual
+        </button>
       </div>
 
       {/* SUMMARY CARDS */}
@@ -308,6 +359,94 @@ export default function InventoryPage() {
             >
               Tutup
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL TAMBAH MANUAL */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white p-10 rounded-[3rem] w-full max-w-lg shadow-2xl border border-white relative overflow-hidden">
+            <button 
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="mb-8">
+              <h3 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">Tambah Bahan Baru</h3>
+              <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Masukkan detail stok pantry Anda</p>
+            </div>
+
+            <form onSubmit={handleAddItem} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Nama Bahan</label>
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="Contoh: Apel Merah"
+                    value={newItem.item_name}
+                    onChange={(e) => setNewItem({...newItem, item_name: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-green-500/5 transition-all outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Icon (Emoji)</label>
+                  <input 
+                    type="text" 
+                    value={newItem.icon}
+                    onChange={(e) => setNewItem({...newItem, icon: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-green-500/5 transition-all outline-none text-center"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Jumlah (Qty)</label>
+                  <input 
+                    type="number" 
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value)})}
+                    className="w-full px-5 py-4 bg-slate-50 border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-green-500/5 transition-all outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Berat/Isi</label>
+                  <input 
+                    type="number" 
+                    value={newItem.current_weight}
+                    onChange={(e) => setNewItem({...newItem, current_weight: parseFloat(e.target.value)})}
+                    className="w-full px-5 py-4 bg-slate-50 border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-green-500/5 transition-all outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Satuan</label>
+                  <select 
+                    value={newItem.unit}
+                    onChange={(e) => setNewItem({...newItem, unit: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-green-500/5 transition-all outline-none appearance-none"
+                  >
+                    <option value="gram">Gram</option>
+                    <option value="kg">KG</option>
+                    <option value="ml">ML</option>
+                    <option value="liter">Liter</option>
+                    <option value="pcs">Pcs</option>
+                  </select>
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={loading}
+                className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest hover:bg-green-600 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
+              >
+                {loading ? "Menyimpan..." : "Simpan ke Inventori"}
+              </button>
+            </form>
           </div>
         </div>
       )}

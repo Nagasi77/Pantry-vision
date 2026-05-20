@@ -55,10 +55,28 @@ export const authOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user, account }: any) {
       if (user) {
-        token.role = user.role
+        token.role = user.role || "user"
         token.id = user.id
+
+        // Jika login via Google, kita perlu mencari UUID di Supabase
+        if (account?.provider === 'google') {
+          // Cari profile berdasarkan email
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('full_name', user.name) // Fallback sementara jika email belum ada di profiles
+            .single()
+
+          if (profile) {
+            token.id = profile.id
+          } else {
+            // Jika tidak ada profile, buat baru (Opsional: tergantung kebijakan app Anda)
+            // Untuk sekarang, kita coba ambil data dari auth.users via RPC atau service key jika ada
+            // Namun karena hanya ada anon key, kita gunakan logika pencocokan nama atau email jika kolomnya ada
+          }
+        }
       }
       return token
     },
@@ -72,7 +90,22 @@ export const authOptions = {
     },
 
     async signIn({ user, account }: any) {
-      // Izinkan semua login (OAuth & Credentials)
+      if (account?.provider === "google") {
+        // Cek apakah profile sudah ada
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('full_name', user.name)
+          .single()
+
+        if (!profile) {
+          // Jika Anda ingin otomatis membuat profile baru saat login Google, 
+          // Anda memerlukan Service Role Key karena Anon Key biasanya tidak diizinkan Insert ke Profiles 
+          // jika belum ada di auth.users. 
+          // Untuk saat ini, kita biarkan return true agar user bisa login, 
+          // tapi Dashboard mungkin akan kosong jika UUID tidak ditemukan.
+        }
+      }
       return true
     }
   },
