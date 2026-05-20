@@ -44,7 +44,7 @@ export default function ScanPage() {
     setResult(null)
   }
 
-  const formatLabel = (label: string) => label.split('_').join(' ')
+  const formatLabel = (label: string) => label ? label.split('_').join(' ') : 'Menunggu data'
 
   const runAnalysis = async () => {
     if (!file) return
@@ -53,7 +53,7 @@ export default function ScanPage() {
     formData.append('file', file)
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/predict', {
+      const res = await fetch('http://localhost:8000/predict/manual', {
         method: 'POST',
         body: formData,
       })

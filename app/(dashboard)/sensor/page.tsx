@@ -1,29 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Scan } from "lucide-react";
-// import mqtt from "mqtt";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Scan, RefreshCw } from "lucide-react";
+import mqtt from "mqtt";
 
-
-// ─── Types & Constants ───────────────────────────────────────────────────────
 type FreshnessStatus = "fresh" | "medium" | "low";
-
-interface FoodItem {
-  id: number;
-  emoji: string;
-  name: string;
-  weight: number;
-  kcal: number;
-  freshness: number;
-  kelembaban: number;
-  tekstur: number;
-  warna: number;
-  aroma: number;
-  status: FreshnessStatus;
-  gas: string;
-  saran: string;
-  scannedAt: string;
-}
 
 interface ScanEntry {
   emoji: string;
@@ -45,17 +26,6 @@ const STATUS_BG: Record<FreshnessStatus, string> = {
   low: "bg-red-100 text-red-800",
 };
 
-const INITIAL_FOODS: FoodItem[] = [
-  { id: 0, emoji: "🍎", name: "Apel", weight: 150, kcal: 52, freshness: 85, kelembaban: 78, tekstur: 85, warna: 90, aroma: 80, status: "fresh", gas: "Normal", saran: "Pie apel, salad buah, konsumsi langsung", scannedAt: "09:58" },
-  { id: 1, emoji: "🍌", name: "Pisang", weight: 120, kcal: 89, freshness: 42, kelembaban: 55, tekstur: 40, warna: 50, aroma: 35, status: "low", gas: "Fermentasi ringan", saran: "Banana bread, smoothie, pisang goreng", scannedAt: "10:25" },
-];
-
-const INITIAL_HISTORY: ScanEntry[] = [
-  { emoji: "🍎", name: "Apel", time: "09:58", pct: 85, status: "fresh" },
-  { emoji: "🍌", name: "Pisang", time: "10:25", pct: 42, status: "low" },
-];
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 function freshnessColor(pct: number) {
   if (pct >= 70) return "#16a34a";
   if (pct >= 45) return "#d97706";
@@ -66,11 +36,6 @@ function nowTime() {
   return new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
-function clamp(n: number) {
-  return Math.max(5, Math.min(98, n));
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 function Badge({ status, small }: { status: FreshnessStatus; small?: boolean }) {
   return (
     <span className={`inline-block rounded-full font-black uppercase ${small ? "px-2 py-0.5 text-[8px]" : "px-3 py-1 text-[10px]"} ${STATUS_BG[status]}`}>
@@ -79,26 +44,8 @@ function Badge({ status, small }: { status: FreshnessStatus; small?: boolean }) 
   );
 }
 
-function ReadingBar({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="space-y-1.5 text-left">
-      <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
-        <span className="text-slate-500">{label}</span>
-        <span className="text-slate-800">{value}%</span>
-      </div>
-      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
-        <div 
-          className="h-full transition-all duration-1000" 
-          style={{ width: `${value}%`, backgroundColor: freshnessColor(value) }} 
-        />
-      </div>
-    </div>
-  );
-}
-
-function Gauge({ value }: { value: number }) {
+function Gauge({ value, labelText }: { value: number; labelText: string }) {
   const color = freshnessColor(value);
-  const label = STATUS_LABEL[value >= 70 ? "fresh" : value >= 45 ? "medium" : "low"];
   const circumference = 2 * Math.PI * 54;
   const strokeDashoffset = circumference - (value / 100) * circumference;
 
@@ -119,103 +66,125 @@ function Gauge({ value }: { value: number }) {
         </div>
       </div>
       <div className="flex flex-col items-center mt-3 text-center">
-        <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Tingkat Kesegaran</span>
-        <span className="text-xs font-black uppercase tracking-widest mt-1" style={{ color }}>{label}</span>
+        <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Kondisi Objek</span>
+        <span className="text-xs font-black uppercase tracking-widest mt-1" style={{ color }}>{labelText}</span>
       </div>
     </div>
   );
 }
 
 export default function SensorPage() {
-  const [foods] = useState<FoodItem[]>(INITIAL_FOODS);
-  const [selectedId, setSelectedId] = useState(0);
-  const [history, setHistory] = useState<ScanEntry[]>(INITIAL_HISTORY);
+  const [history, setHistory] = useState<ScanEntry[]>([]);
   const [isScanning, setIsScanning] = useState(false);
-  const [jarak, setJarak] = useState(7);
-
-  const food = foods.find((f) => f.id === selectedId) ?? foods[0];
-
-
+  const [jarak, setJarak] = useState(0);
+  const [gasFromSensor, setGasFromSensor] = useState("Menunggu alat...");
   
+  // Data visual yang diperbarui otomatis oleh sistem IoT
+  const [scannedImage, setScannedImage] = useState<string | null>(null);
+  const [displayFreshness, setDisplayFreshness] = useState(0);
+  const [displayLabel, setDisplayLabel] = useState("Belum Ada Objek");
+  const [saranPenggunaan, setSaranPenggunaan] = useState("Tempatkan buah apel di dalam jangkauan sensor.");
+
+  // Ref untuk menyimpan instance client MQTT agar bisa diakses di luar useEffect
+  const mqttClientRef = useRef<mqtt.MqttClient | null>(null);
 
   useEffect(() => {
-    /* 
-    // Koneksi ke broker MQTT
-    const client = mqtt.connect("ws://test.mosquitto.org:8080"); 
+    const client = mqtt.connect("ws://broker.hivemq.com:8000/mqtt");
+    mqttClientRef.current = client;
 
     client.on("connect", () => {
-      console.log("Terhubung ke MQTT");
-      client.subscribe("pantry/sensors"); // Topik yang dikirim ESP32
+      console.log("MQTT Terhubung");
+      client.subscribe("pantry/sensors");
+      client.subscribe("pantry/status"); // Mendengarkan status foto dari ESP32
     });
 
     client.on("message", (topic, message) => {
       try {
-        const data = JSON.parse(message.toString());
-        if (data.jarak) {
-          setJarak(data.jarak); // Mengubah angka jarak di UI sesuai data ESP32
+        const payload = message.toString();
+        
+        if (topic === "pantry/sensors") {
+          const data = JSON.parse(payload);
+          if (data.jarak !== undefined) setJarak(data.jarak);
+          if (data.gas !== undefined) setGasFromSensor(data.gas);
+          
+          // Jika backend AI mengirimkan hasil prediksi langsung via MQTT
+          if (data.label !== undefined) {
+            setDisplayLabel(data.label);
+            setDisplayFreshness(data.confidence || 0);
+            if (data.saran) setSaranPenggunaan(data.saran);
+            
+            // Masukkan data otomatis ke riwayat
+            setHistory((prev) => [
+              {
+                emoji: "🍎",
+                name: `Apel (${data.label})`,
+                time: nowTime(),
+                pct: data.confidence || 0,
+                status: data.confidence >= 70 ? "fresh" : data.confidence >= 45 ? "medium" : "low"
+              },
+              ...prev.slice(0, 4),
+            ]);
+          }
         }
       } catch (e) {
-        console.log("Gagal parse data sensor");
+        console.log("Error parse data");
       }
     });
 
-    return () => {
-      if (client) client.end();
-    };
-    */
+    return () => { if (client) client.end(); };
   }, []);
 
-  const scanNew = useCallback(() => {
-    if (isScanning) return;
+  // Ambil data analisis terbaru dari database/backend FastAPI
+  const fetchLatestIoTData = useCallback(async () => {
     setIsScanning(true);
-    setTimeout(() => {
-      const val = clamp(food.freshness + Math.round((Math.random() - 0.5) * 14));
-      setHistory((prev) => [
-        { 
-          emoji: food.emoji, 
-          name: food.name, 
-          time: nowTime(), 
-          pct: val, 
-          status: val >= 70 ? "fresh" : val >= 45 ? "medium" : "low" 
-        },
-        ...prev.slice(0, 4),
-      ]);
+    try {
+      const res = await fetch("http://localhost:8000/predict/iot-latest");
+      if (!res.ok) throw new Error("Gagal mengambil data");
+      const data = await res.json();
+      
+      setScannedImage(data.image_url);
+      setDisplayFreshness(data.confidence);
+      setDisplayLabel(data.label);
+      setSaranPenggunaan(data.saran);
+    } catch (err) {
+      console.error("Gagal sinkronisasi data:", err);
+    } finally {
       setIsScanning(false);
-    }, 1600);
-  }, [isScanning, food]);
+    }
+  }, []);
+
+  // FUNGSI REMOTE TRIGGER: Menyuruh ESP32 mengambil foto lewat MQTT
+  const triggerRemoteHardwareScan = useCallback(() => {
+    if (!mqttClientRef.current) {
+      alert("Koneksi MQTT belum siap.");
+      return;
+    }
+    
+    setIsScanning(true);
+    // Kirim perintah jepret ke topik pantry/perintah yang sudah di-subscribe oleh ESP32 kamu
+    mqttClientRef.current.publish("pantry/perintah", "AMBIL_FOTO");
+    
+    // Beri jeda 3 detik agar hardware memproses foto dan mengirimkannya ke FastAPI
+    setTimeout(() => {
+      fetchLatestIoTData();
+    }, 3000);
+  }, [fetchLatestIoTData]);
 
   return (
     <div className="w-full space-y-8 pb-16">
-      {/* FOOD SELECTOR */}
-      <div className="flex gap-3">
-        {foods.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setSelectedId(f.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border ${
-              selectedId === f.id
-                ? "bg-green-600 text-white border-green-600 shadow-lg shadow-green-100"
-                : "bg-white text-slate-500 border-slate-100 hover:border-green-300"
-            }`}
-          >
-            <span>{f.emoji}</span> {f.name}
-          </button>
-        ))}
-      </div>
-
       {/* SENSOR CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm">
           <p className="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Berat</p>
-          <p className="text-3xl font-black tracking-tighter text-slate-800 leading-none">{food.weight}g</p>
-          <p className="text-[10px] font-bold text-slate-400 uppercase italic mt-2">Stabil ±2g</p>
+          <p className="text-3xl font-black tracking-tighter text-slate-800 leading-none">0g</p>
+          <p className="text-[10px] font-bold text-red-400 uppercase italic mt-2">Sensor Offline</p>
         </div>
         <div className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm">
           <p className="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Gas / Aroma</p>
-          <span className={`text-3xl font-black tracking-tighter block leading-none ${food.status === "fresh" ? "text-green-600" : "text-orange-500"}`}>
-            {food.gas}
+          <span className={`text-3xl font-black tracking-tighter block leading-none ${gasFromSensor === "Normal" ? "text-green-600" : "text-orange-500"}`}>
+            {gasFromSensor}
           </span>
-          <p className="text-[10px] font-bold text-slate-400 uppercase italic mt-2">Deteksi Udara Normal</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase italic mt-2">Data Real-time MQTT</p>
         </div>
         <div className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm">
           <p className="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Jarak Scan</p>
@@ -224,83 +193,89 @@ export default function SensorPage() {
         </div>
       </div>
 
-      {/* GAUGE & INFO */}
+      {/* GAUGE PANEL & PANEL GAMBAR IOT */}
       <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-green-500/5 blur-[120px] pointer-events-none" />
         
-        <div className="flex items-center justify-center">
-          <Gauge value={food.freshness} />
+        <div className="flex flex-col items-center justify-center gap-6">
+          <Gauge value={displayFreshness} labelText={displayLabel} />
+          
+          {scannedImage ? (
+            <div className="mt-2 w-40 h-40 rounded-2xl overflow-hidden border border-slate-200 shadow-md bg-slate-50 p-1 flex flex-col items-center justify-center">
+              <img src={scannedImage} alt="Kamera ESP32-CAM" className="w-full h-full object-cover rounded-xl" />
+              <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">Live Image IoT</p>
+            </div>
+          ) : (
+            <div className="mt-2 w-40 h-40 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center p-4 text-center">
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Belum ada tangkapan foto dari alat</p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
           <div>
             <h3 className="text-3xl font-black text-slate-800 tracking-tighter mb-2 leading-none">
-              {food.emoji} {food.name}
+              🍎 Komoditas: Apel
             </h3>
             <div className="flex gap-2 flex-wrap">
-              <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[9px] font-black uppercase tracking-widest">{food.weight}g</span>
-              <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[9px] font-black uppercase tracking-widest">{food.kcal} Kkal</span>
-              <span className="px-2 py-1 bg-green-50 text-green-600 rounded text-[9px] font-black uppercase tracking-widest">Dipindai Baru Saja</span>
+              <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[9px] font-black uppercase tracking-widest">52 Kkal / 100g</span>
+              <span className="px-2 py-1 bg-green-50 text-green-600 rounded text-[9px] font-black uppercase tracking-widest">Infrastruktur IoT Aktif</span>
             </div>
-          </div>
-
-          <div className="space-y-3">
-            <ReadingBar label="Kelembaban" value={food.kelembaban} />
-            <ReadingBar label="Tekstur" value={food.tekstur} />
-            <ReadingBar label="Warna" value={food.warna} />
-            <ReadingBar label="Aroma" value={food.aroma} />
           </div>
 
           <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Saran Penggunaan</p>
-            <p className="text-xs font-bold text-slate-700 leading-relaxed italic">"{food.saran}"</p>
+            <p className="text-xs font-bold text-slate-700 leading-relaxed italic">"{saranPenggunaan}"</p>
           </div>
         </div>
       </div>
 
-      {/* RIWAYAT & BUTTON */}
+      {/* RIWAYAT & AKSI TOMBOL */}
       <div className="space-y-6">
         <div className="flex items-center justify-between px-2">
-          <h3 className="text-lg font-black text-slate-800 tracking-tighter uppercase">Aktivitas Pemindaian</h3>
-          <button
-            onClick={scanNew}
-            disabled={isScanning}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all shadow-lg shadow-green-100 active:scale-95"
-          >
-            {isScanning ? (
-              <>
-                <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Memindai...</span>
-              </>
-            ) : (
-              <>
-                <Scan size={14} />
-                <span>Scan Baru</span>
-              </>
-            )}
-          </button>
+          <h3 className="text-lg font-black text-slate-800 tracking-tighter uppercase">Kontrol Perangkat IoT</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={fetchLatestIoTData}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl transition-all"
+            >
+              <RefreshCw size={12} className={isScanning ? "animate-spin" : ""} />
+              Sync Data
+            </button>
+            <button
+              onClick={triggerRemoteHardwareScan}
+              disabled={isScanning}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all shadow-lg shadow-green-100 active:scale-95"
+            >
+              {isScanning ? "Memproses Hardware..." : "Jepret Kamera Alat"}
+            </button>
+          </div>
         </div>
 
         <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm p-8 space-y-4">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Riwayat Scan Hari Ini</p>
-          <div className="divide-y divide-slate-50">
-            {history.map((entry, i) => (
-              <div key={i} className="flex items-center justify-between py-4 hover:bg-slate-50/50 transition-colors rounded-2xl px-2">
-                <div className="flex items-center gap-4">
-                  <span className="text-[11px] font-bold text-slate-400 italic w-12">{entry.time}</span>
-                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white">{entry.emoji}</div>
-                  <span className="text-sm font-black text-slate-800 tracking-tight">{entry.name}</span>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <span className="text-sm font-black block leading-none" style={{ color: freshnessColor(entry.pct) }}>{entry.pct}%</span>
-                    <span className="text-[8px] font-black text-slate-400 uppercase">Kesegaran</span>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Riwayat Deteksi Kotak Pantry</p>
+          {history.length === 0 ? (
+            <p className="text-xs text-slate-400 italic">Belum ada riwayat deteksi objek otomatis.</p>
+          ) : (
+            <div className="divide-y divide-slate-50">
+              {history.map((entry, i) => (
+                <div key={i} className="flex items-center justify-between py-4 hover:bg-slate-50/50 transition-colors rounded-2xl px-2">
+                  <div className="flex items-center gap-4">
+                    <span className="text-[11px] font-bold text-slate-400 italic w-12">{entry.time}</span>
+                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white">{entry.emoji}</div>
+                    <span className="text-sm font-black text-slate-800 tracking-tight">{entry.name}</span>
                   </div>
-                  <Badge status={entry.status} small />
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <span className="text-sm font-black block leading-none" style={{ color: freshnessColor(entry.pct) }}>{entry.pct}%</span>
+                      <span className="text-[8px] font-black text-slate-400 uppercase">Confidence</span>
+                    </div>
+                    <Badge status={entry.status} small />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
