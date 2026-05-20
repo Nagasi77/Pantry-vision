@@ -4,3 +4,7 @@ freshoranges
 rottenapples
 rottenbanana
 rottenoranges
+Apple_Blotch
+Apple_Normal
+Apple_Rot
+Apple_Scab
