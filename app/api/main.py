@@ -87,7 +87,7 @@ async def predict_iot(file: UploadFile = File(...)):
         "label": info["label"],
         "confidence": info["pct"],
         "saran": info["saran"],
-        "image_url": "http://localhost:8000/static/latest_pantry.jpg"
+        "image_url": f"http://{request.client.host}:8000/static/latest_pantry.jpg"
     }
     
     return {"status": "Success", "processed_label": raw_label}
