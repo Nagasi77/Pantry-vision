@@ -2,11 +2,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { LogOut } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
+import { usePathname } from 'next/navigation'
 
 export default function Header() {
   const { data: session } = useSession()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const pathname = usePathname()
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -21,8 +23,8 @@ export default function Header() {
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || 'U'
 
   return (
-    <header className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 flex items-center justify-between px-10">
-      <h2 className="text-xl font-black text-slate-800 tracking-tighter uppercase">Dashboard</h2>
+      <header className="h-20 min-h-[80px] w-full shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 flex items-center justify-between px-10">
+      <h2 className="text-xl font-black text-slate-800 tracking-tighter uppercase"> {pathname.split('/').pop()?.replace('-', ' ')}</h2>
       
       <div className="relative" ref={dropdownRef}>
         <button 

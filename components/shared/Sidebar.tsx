@@ -30,7 +30,7 @@ export default function Sidebar() {
         <Link href="/scan" className={navItemStyle('/scan')}><Scan size={20}/> <span>Scan</span></Link>
         <Link href="/riwayat" className={navItemStyle('/riwayat')}><History size={20}/> <span>Riwayat Scan</span></Link>
         <Link href="/resep" className={navItemStyle('/resep')}><ChefHat size={20}/> <span>Rekomendasi Resep</span></Link>
-        <Link href="/infos" className={navItemStyle('/infos')}><BookOpen size={20}/> <span>Nutridex</span></Link>
+        <Link href="/nutridex" className={navItemStyle('/nutridex')}><BookOpen size={20}/> <span>Nutridex</span></Link>
 
 
         <div className="pt-8 border-t border-slate-50 mt-4">

@@ -171,7 +171,7 @@ export default function SensorPage() {
   }, [fetchLatestIoTData]);
 
   return (
-    <div className="w-full space-y-8 pb-16">
+    <div className="space-y-8 pb-12">
       {/* SENSOR CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm">
