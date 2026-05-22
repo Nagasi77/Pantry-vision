@@ -1,7 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextFetchEvent, NextMiddleware, NextRequest, NextResponse } from "next/server";
 
-// Kalau butuh kedepannya
 const hanyaAdmin = ["/admin"];
 
 export default function withAuth(
@@ -16,12 +15,17 @@ export default function withAuth(
       secret: process.env.NEXTAUTH_SECRET,
     });
 
-    if (requireAuth.includes(pathname)) {
+    // Cek apakah halaman yang diakses ada di daftar requireAuth
+    const isPageProtected = requireAuth.some((path) => pathname.startsWith(path));
+
+    if (isPageProtected) {
       if (!token) {
-        const Url = new URL("/auth/login", req.url);
-        Url.searchParams.set("callbackUrl", encodeURI(req.url));
-        return NextResponse.redirect(Url);
+        const url = new URL("/auth/login", req.url);
+        url.searchParams.set("callbackUrl", encodeURI(req.url));
+        return NextResponse.redirect(url);
       }
+      
+      // Proteksi khusus Admin
       if (token.role !== "admin" && hanyaAdmin.includes(pathname)) {
         return NextResponse.redirect(new URL("/", req.url));
       }

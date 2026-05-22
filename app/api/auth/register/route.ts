@@ -1,74 +1,28 @@
-import NextAuth from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import GoogleProvider from "next-auth/providers/google"
-import { signIn as firebaseSignIn, signInWithGoogle } from "../../../lib/service"
-import bcrypt from "bcryptjs"
+import { supabase } from "../../../lib/supabase"
+import { NextResponse } from "next/server";
 
-export const authOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+export async function POST(request: Request) {
+  try {
+    const { email, password, username } = await request.json();
+
+    // 1. Daftar ke Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Menyimpan username ke metadata agar bisa diambil nanti
+        data: {
+          full_name: username,
+        },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-        
-        const user: any = await firebaseSignIn(credentials.email)
-        
-        if (user && user.password) {
-          const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password)
-          if (isPasswordCorrect) {
-            return { 
-              id: user.id, 
-              name: user.username, 
-              email: user.email, 
-              role: user.role 
-            }
-          }
-        }
-        return null
-      }
-    })
-  ],
-  callbacks: {
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.role = user.role
-      }
-      return token
-    },
-    async session({ session, token }: any) {
-      if (session.user) {
-        session.user.role = token.role
-      }
-      return session
-    },
-    async signIn({ user, account }: any) {
-      if (account.provider === "google") {
-        const data = {
-          email: user.email,
-          username: user.name,
-          image: user.image,
-        }
-        await signInWithGoogle(data, (result: any) => {
-          return result.status
-        })
-      }
-      return true
+    });
+
+    if (error) {
+      return NextResponse.json({ message: error.message }, { status: 400 });
     }
-  },
-  pages: {
-    signIn: "/login",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
+
+    return NextResponse.json({ message: "Registrasi Berhasil" }, { status: 200 });
+  } catch (err) {
+    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+  }
 }
-
-const handler = NextAuth(authOptions)
-
-export { handler as GET, handler as POST }
