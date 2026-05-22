@@ -33,7 +33,7 @@ export default function Sidebar() {
         <Link href="/nutridex" className={navItemStyle('/nutridex')}><BookOpen size={20}/> <span>Nutridex</span></Link>
 
 
-        <div className="pt-8 border-t border-slate-50 mt-4">
+        <div className="pt-1 border-t border-slate-100 mt-8">
           <p className="px-4 text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em]">Akun</p>
           <Link href="/profile" className={navItemStyle('/profile')}><User size={20} /> <span>Profile</span></Link>
         </div>
