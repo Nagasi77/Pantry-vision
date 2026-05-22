@@ -27,7 +27,6 @@ export default function DashboardPage() {
   })
   const [inventory, setInventory] = useState<any[]>([])
   const [sensorRealtime, setSensorRealtime] = useState({
-    berat: 0,
     gas: 'Normal',
     jarak: 0
   })
@@ -70,7 +69,7 @@ export default function DashboardPage() {
           aman: items.length - restokItems.length,
           restok: restokItems.length,
           scan: scanCount || 0,
-          restokName: restokItems.length > 0 ? restokItems[0].name : '-'
+          restokName: restokItems.length > 0 ? (restokItems[0].item_name || restokItems[0].name || '-') : '-'
         })
       }
     } catch (error: any) {
@@ -98,7 +97,6 @@ export default function DashboardPage() {
           },
           (payload) => {
             setSensorRealtime({
-              berat: payload.new.berat,
               gas: payload.new.gas,
               jarak: payload.new.jarak
             })
@@ -148,9 +146,9 @@ export default function DashboardPage() {
                 <InventoryItem
                   key={item.id}
                   icon={item.icon || "📦"}
-                  name={item.name}
+                  name={item.item_name || item.name || '—'}
                   qty={`${item.quantity} pcs`}
-                  detail={`${item.weight || 0}g • ${item.calories || 0} kkal`}
+                  freshness={item.freshness_status}
                   color={item.quantity <= 2 ? "bg-yellow-400" : "bg-green-500"}
                   percentage={item.quantity > 5 ? "w-full" : "w-[40%]"}
                 />
@@ -176,8 +174,7 @@ export default function DashboardPage() {
               Live Monitoring
             </h3>
 
-            <div className="grid grid-cols-3 gap-3 mb-8 text-center">
-              <SensorCard label="Berat" val={`${sensorRealtime.berat}g`} />
+            <div className="grid grid-cols-2 gap-3 mb-8 text-center">
               <SensorCard
                 label="Gas"
                 val={sensorRealtime.gas}
@@ -190,14 +187,16 @@ export default function DashboardPage() {
           <div className="bg-white/5 backdrop-blur-xl p-7 rounded-3xl border border-white/10 shadow-inner relative z-10 transition-all">
             <div className="flex gap-4 items-center">
               <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-3xl shrink-0">
-                {sensorRealtime.berat > 0 ? "🍓" : "📭"}
+                {sensorRealtime.jarak > 0 && sensorRealtime.jarak < 20 ? "🔍" : "📭"}
               </div>
               <div className="text-left">
                 <p className="font-black text-lg text-white leading-none mb-1.5 tracking-tight">
-                  {sensorRealtime.berat > 0 ? `${sensorRealtime.berat}g Terdeteksi` : "Siap Memindai"}
+                  {sensorRealtime.jarak > 0 && sensorRealtime.jarak < 20 ? "Objek Terdeteksi" : "Siap Memindai"}
                 </p>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                  {sensorRealtime.berat > 0 ? "Alat sedang menimbang bahan" : "Letakkan bahan di atas alat"}
+                  {sensorRealtime.jarak > 0 && sensorRealtime.jarak < 20
+                    ? `Jarak: ${sensorRealtime.jarak}cm · Gas: ${sensorRealtime.gas}`
+                    : "Letakkan bahan di depan sensor"}
                 </p>
               </div>
             </div>
@@ -219,14 +218,22 @@ function StatCard({ label, value, subLabel, valueColor }: any) {
   )
 }
 
-function InventoryItem({ icon, name, qty, detail, color, percentage }: any) {
+function InventoryItem({ icon, name, qty, freshness, color, percentage }: any) {
+  const normFreshness = (s: string | null) => {
+    if (!s) return null
+    const lower = s.toLowerCase()
+    if (lower.includes('fresh') || lower.includes('segar')) return { label: 'Segar', cls: 'text-green-600' }
+    if (lower.includes('decline') || lower.includes('menurun') || lower.includes('warning')) return { label: 'Menurun', cls: 'text-yellow-600' }
+    return { label: 'Hampir busuk', cls: 'text-red-500' }
+  }
+  const f = normFreshness(freshness)
   return (
     <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-white transition-all group">
       <div className="flex items-center gap-4 text-left">
         <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-2xl shadow-sm border border-slate-50">{icon}</div>
         <div>
           <p className="font-black text-slate-800 leading-none mb-1">{name}</p>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{detail}</p>
+          {f && <p className={`text-[10px] font-bold uppercase tracking-tighter ${f.cls}`}>{f.label}</p>}
         </div>
       </div>
       <div className="flex-1 max-w-[120px] mx-8 hidden sm:block">
