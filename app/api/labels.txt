@@ -1,9 +1,3 @@
-freshapples
-freshbanana
-freshoranges
-rottenapples
-rottenbanana
-rottenoranges
 Apple_Blotch
 Apple_Normal
 Apple_Rot

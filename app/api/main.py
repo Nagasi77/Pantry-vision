@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import tensorflow as tf
@@ -7,6 +7,7 @@ from PIL import Image
 import io
 import os
 import uvicorn
+import paho.mqtt.client as mqtt
 
 app = FastAPI()
 
@@ -17,11 +18,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Membuat folder penyimpanan gambar jika belum ada
 if not os.path.exists("static"):
     os.makedirs("static")
 
-# Menyediakan akses folder via URL browser
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 model = tf.keras.models.load_model("model_kesegaran.keras")
@@ -29,7 +28,6 @@ model = tf.keras.models.load_model("model_kesegaran.keras")
 with open("labels.txt", "r") as f:
     labels = f.read().splitlines()
 
-# Tempat penyimpanan data deteksi terakhir di memori backend
 latest_iot_data = {
     "label": "Belum Ada Objek",
     "confidence": 0,
@@ -37,13 +35,16 @@ latest_iot_data = {
     "image_url": None
 }
 
-# Peta informasi hasil klasifikasi AI untuk halaman sensor
 ML_MAP = {
     "Apple_Normal": {"label": "Normal (Segar)", "pct": 95, "saran": "Konsumsi langsung atau simpan di dalam kulkas."},
     "Apple_Blotch": {"label": "Bercak (Cukup Segar)", "pct": 60, "saran": "Kupas bagian kulit yang bercak sebelum dikonsumsi."},
     "Apple_Scab": {"label": "Scab (Cukup Segar)", "pct": 55, "saran": "Potong bagian yang rusak dan jadikan olahan kue."},
     "Apple_Rot": {"label": "Busuk (Kurang Segar)", "pct": 15, "saran": "Buah sudah busuk. Segera buang dari pantry."}
 }
+
+mqtt_client = mqtt.Client()
+mqtt_client.connect("broker.hivemq.com", 1883, 60)
+mqtt_client.loop_start()
 
 def process_image(contents):
     image = Image.open(io.BytesIO(contents)).convert("RGB")
@@ -64,37 +65,40 @@ async def predict_manual(file: UploadFile = File(...)):
     }
 
 @app.post("/predict/iot")
-async def predict_iot(file: UploadFile = File(...)):
+async def predict_iot(request: Request, file: UploadFile = File(...)):
     global latest_iot_data
     contents = await file.read()
     
-    # Menyimpan file biner foto dari ESP32-CAM ke folder lokal laptop
     image_path = os.path.join("static", "latest_pantry.jpg")
     with open(image_path, "wb") as f:
         f.write(contents)
         
-    # Proses deteksi AI
     img_array = process_image(contents)
     predictions = model.predict(img_array)
     index = np.argmax(predictions[0])
     raw_label = labels[index]
     
-    # Mengambil konfigurasi label ramah pengguna dan saran praktis
     info = ML_MAP.get(raw_label, {"label": raw_label, "pct": 50, "saran": "Kondisi tidak dikenal."})
     
-    # Memperbarui objek data global terbaru agar bisa diunduh oleh Next.js
     latest_iot_data = {
         "label": info["label"],
         "confidence": info["pct"],
         "saran": info["saran"],
-        "image_url": f"http://{request.client.host}:8000/static/latest_pantry.jpg"
+        "image_url": "http://localhost:8000/static/latest_pantry.jpg"
     }
+
+    kondisi_led = "BUSUK"
+    if raw_label == "Apple_Normal":
+        kondisi_led = "SEGAR"
+    elif raw_label == "Apple_Blotch" or raw_label == "Apple_Scab":
+        kondisi_led = "WASPADA"
+        
+    mqtt_client.publish("pantry/kondisi", kondisi_led)
     
     return {"status": "Success", "processed_label": raw_label}
 
 @app.get("/predict/iot-latest")
 async def get_iot_latest():
-    # Endpoint penyuplai data yang diminta oleh tombol Sync Data di Next.js
     return latest_iot_data
 
 if __name__ == "__main__":
