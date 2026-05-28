@@ -53,7 +53,7 @@ export default function ScanPage() {
     formData.append('file', file)
 
     try {
-      const res = await fetch('http://localhost:8000/predict/manual', {
+      const res = await fetch('/api/ai/predict', {
         method: 'POST',
         body: formData,
       })

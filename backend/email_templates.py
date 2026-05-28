@@ -1,4 +1,10 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv(".env.local")
+
 def get_freshness_alert_template(item_name: str, days_left: int) -> str:
+    app_url = os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000")
     return f"""
     <html>
         <body>
@@ -8,7 +14,7 @@ def get_freshness_alert_template(item_name: str, days_left: int) -> str:
             <p>Tersisa sekitar <b>{days_left} hari</b> sebelum produk ini dianggap tidak segar lagi.</p>
             <p>Segera olah item tersebut atau gunakan untuk resep masakan Anda!</p>
             <br>
-            <a href="http://localhost:3000/dashboard">Cek Dashboard Pantry</a>
+            <a href="{app_url}/dashboard">Cek Dashboard Pantry</a>
         </body>
     </html>
     """

@@ -138,7 +138,7 @@ export default function SensorPage() {
   const fetchLatestIoTData = useCallback(async () => {
     setIsScanning(true);
     try {
-      const res = await fetch("http://localhost:8000/predict/iot-latest");
+      const res = await fetch("/api/ai/iot-latest");
       if (!res.ok) throw new Error("Gagal mengambil data");
       const data = await res.json();
       

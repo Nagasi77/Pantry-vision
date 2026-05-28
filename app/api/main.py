@@ -8,6 +8,20 @@ import io
 import os
 import uvicorn
 import paho.mqtt.client as mqtt
+from dotenv import load_dotenv
+from supabase import create_client, Client
+from datetime import datetime
+import uuid
+
+load_dotenv(".env.local")
+
+# Initialize Supabase
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+
+supabase: Client = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = FastAPI()
 
@@ -52,12 +66,26 @@ def process_image(contents):
     img_array = np.array(image) / 255.0
     return np.expand_dims(img_array, axis=0)
 
+async def save_detection_to_supabase(detection_data: dict):
+    """Save detection results to Supabase database"""
+    if not supabase:
+        print("Supabase not configured")
+        return None
+    
+    try:
+        result = supabase.table("detections").insert(detection_data).execute()
+        return result.data
+    except Exception as e:
+        print(f"Error saving to Supabase: {e}")
+        return None
+
 @app.post("/predict/manual")
 async def predict_manual(file: UploadFile = File(...)):
     contents = await file.read()
     img_array = process_image(contents)
     predictions = model.predict(img_array)
     index = np.argmax(predictions[0])
+    
     return {
         "source": "Manual Scan",
         "label": labels[index],
@@ -80,11 +108,14 @@ async def predict_iot(request: Request, file: UploadFile = File(...)):
     
     info = ML_MAP.get(raw_label, {"label": raw_label, "pct": 50, "saran": "Kondisi tidak dikenal."})
     
+    # Get the Azure server URL from environment (for local dev use localhost)
+    azure_url = os.getenv("AZURE_SERVER_URL", "http://localhost:8000")
+    
     latest_iot_data = {
         "label": info["label"],
         "confidence": info["pct"],
         "saran": info["saran"],
-        "image_url": "http://localhost:8000/static/latest_pantry.jpg"
+        "image_url": f"{azure_url}/static/latest_pantry.jpg"
     }
 
     kondisi_led = "BUSUK"
@@ -95,11 +126,29 @@ async def predict_iot(request: Request, file: UploadFile = File(...)):
         
     mqtt_client.publish("pantry/kondisi", kondisi_led)
     
-    return {"status": "Success", "processed_label": raw_label}
+    # Save detection to Supabase
+    detection_record = {
+        "id": str(uuid.uuid4()),
+        "raw_label": raw_label,
+        "display_label": info["label"],
+        "confidence": info["pct"],
+        "suggestion": info["saran"],
+        "source": "IoT",
+        "timestamp": datetime.utcnow().isoformat(),
+        "image_path": image_path
+    }
+    
+    await save_detection_to_supabase(detection_record)
+    
+    return {"status": "Success", "processed_label": raw_label, "data": latest_iot_data}
 
 @app.get("/predict/iot-latest")
 async def get_iot_latest():
     return latest_iot_data
+
+@app.get("/health")
+async def health_check():
+    return {"status": "Server Azure Pantry AI Berjalan Lancar!", "supabase_connected": supabase is not None}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
