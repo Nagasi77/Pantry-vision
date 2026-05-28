@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+tensorflow
+numpy
+pillow
+paho-mqtt
+python-dotenv
+fastapi-mail
+pydantic
+python-multipart
+aiofiles

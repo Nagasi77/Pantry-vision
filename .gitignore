@@ -43,3 +43,6 @@ next-env.d.ts
 
 # tensorflow
 /app/api/tf_env/
+
+# generated files
+latest_pantry.jpg
