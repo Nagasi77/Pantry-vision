@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 .env.local
 
 # vercel
@@ -46,3 +47,7 @@ next-env.d.ts
 
 # generated files
 latest_pantry.jpg
+
+# local Supabase -> HDFS sync backups and detection exports
+/hdfs_sync/
+*detections*.json

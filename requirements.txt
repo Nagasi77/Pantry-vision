@@ -10,3 +10,4 @@ pydantic
 python-multipart
 aiofiles
 supabase
+hdfs
