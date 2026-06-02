@@ -296,7 +296,7 @@ Display latest data in Sensor page
 
 ## Primary Flow — Local Hadoop Demo (interactive)
 
-The demo page is now the primary path for showcasing Hadoop processing during presentation. It reads synced JSON outputs from the repository folder `hdfs_sync/` and provides lightweight processing and export features so you can demo results without migrating data.
+The demo page is now the primary path for showcasing Hadoop processing. It reads synced JSON outputs from the repository folder `hdfs_sync/` and provides lightweight processing and export features so you can demo results without migrating data.
 
 Location:
 - Demo page: [app/(dashboard)/hadoop/page.tsx](app/(dashboard)/hadoop/page.tsx#L1)
