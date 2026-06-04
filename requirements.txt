@@ -1,13 +1,9 @@
 fastapi
-uvicorn
-tensorflow
+uvicorn[standard]
+ultralytics
 numpy
 pillow
 paho-mqtt
 python-dotenv
-fastapi-mail
-pydantic
 python-multipart
-aiofiles
 supabase
-hdfs
