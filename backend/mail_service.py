@@ -16,7 +16,9 @@ conf = ConnectionConfig(
     USE_CREDENTIALS=True
 )
 
-async def send_email(email_to: str, subject: str, template: str):
+async def send_email(email_from: str, email_to: str, subject: str, template: str):
+    conf.MAIL_FROM = email_from
+    
     message = MessageSchema(
         subject=subject,
         recipients=[email_to],
