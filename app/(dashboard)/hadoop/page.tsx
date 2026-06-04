@@ -67,6 +67,33 @@ export default function Page() {
     })
     .slice(0, 10)
 
+  // compute daily trend for the last 14 days
+  const dateCounts: Record<string, { count: number; confSum: number; confCount: number }> = {}
+  flat.forEach((it) => {
+    const ta = it.timestamp ? Date.parse(String(it.timestamp)) : NaN
+    if (!Number.isNaN(ta)) {
+      const d = new Date(ta)
+      const key = d.toISOString().slice(0, 10)
+      const c = normalizeConfidence(it.confidence)
+      if (!dateCounts[key]) dateCounts[key] = { count: 0, confSum: 0, confCount: 0 }
+      dateCounts[key].count += 1
+      if (c !== undefined) {
+        dateCounts[key].confSum += c
+        dateCounts[key].confCount += 1
+      }
+    }
+  })
+
+  const days = 14
+  const today = new Date()
+  const trend = Array.from({ length: days }).map((_, i) => {
+    const d = new Date(today)
+    d.setDate(today.getDate() - (days - 1 - i))
+    const key = d.toISOString().slice(0, 10)
+    const entry = dateCounts[key] || { count: 0, confSum: 0, confCount: 0 }
+    const avg = entry.confCount > 0 ? entry.confSum / entry.confCount : undefined
+    return { date: key, count: entry.count, avgConfidence: avg }
+  })
   return (
     <main style={{ padding: 20 }}>
       <h1>Hadoop Demo — Processed Summary</h1>
@@ -100,6 +127,29 @@ export default function Page() {
               </li>
             ))}
           </ol>
+        )}
+      </section>
+
+      <section style={{ marginBottom: 20 }}>
+        <h2>Trends (last 14 days)</h2>
+        {trend.length === 0 ? (
+          <p>No trend data.</p>
+        ) : (
+          <ul style={{ fontFamily: 'monospace' }}>
+            {(() => {
+              const max = Math.max(...trend.map((t) => t.count), 1)
+              return trend.map((t) => {
+                const barLen = Math.round((t.count / max) * 20)
+                const bar = '█'.repeat(barLen) + ' '.repeat(20 - barLen)
+                return (
+                  <li key={t.date} style={{ marginBottom: 6 }}>
+                    <strong>{t.date}</strong> — {t.count} detections {t.avgConfidence !== undefined ? `— ${t.avgConfidence.toFixed(1)}%` : ''}
+                    <div style={{ fontSize: 12 }}>{bar}</div>
+                  </li>
+                )
+              })
+            })()}
+          </ul>
         )}
       </section>
 
