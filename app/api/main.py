@@ -20,7 +20,7 @@ load_dotenv(os.path.join(_root, ".env.local"))
 # ── Supabase ──────────────────────────────────────────────────────────────────
 SUPABASE_URL  = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
 SUPABASE_KEY  = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-SUPABASE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "scan-images")
+SUPABASE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "scan_images")
 
 supabase: Client = None
 if SUPABASE_URL and SUPABASE_KEY:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import {
   Search, Loader2, PackageSearch, X, Camera,
@@ -193,9 +193,8 @@ export default function RiwayatScanPage() {
                   const isExpanded = expandedRows.has(sess.id);
 
                   return (
-                    <>
+                    <React.Fragment key={sess.id}>
                       <tr
-                        key={sess.id}
                         className="hover:bg-slate-50/30 transition-colors group"
                       >
                         {/* Foto thumbnail */}
@@ -326,7 +325,7 @@ export default function RiwayatScanPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
