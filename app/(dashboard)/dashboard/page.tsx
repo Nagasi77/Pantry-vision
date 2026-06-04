@@ -32,16 +32,7 @@ export default function DashboardPage() {
   })
 
   // Gunakan useCallback agar fungsi stabil dan bisa dipanggil di useEffect
-  const fetchDashboardData = useCallback(async (userId: string) => {
-    // Cek apakah userId valid UUID (sederhana)
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
-    
-    if (!isUUID) {
-      console.error("User ID bukan UUID yang valid:", userId)
-      setLoading(false)
-      return
-    }
-
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -82,9 +73,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Pastikan session dan user ID benar-benar sudah ada
-    const userId = session?.user?.id
-    if (status === "authenticated" && userId) {
-      fetchDashboardData(userId)
+    if (status === "authenticated" && session?.user) {
+      fetchDashboardData()
 
       const channel = supabase
         .channel('sensor_changes')
@@ -108,7 +98,7 @@ export default function DashboardPage() {
         supabase.removeChannel(channel)
       }
     }
-  }, [session?.user?.id, status, fetchDashboardData])
+  }, [session?.user, status, fetchDashboardData])
 
   // Tampilan Loading
   if (status === "loading" || (loading && inventory.length === 0)) {
