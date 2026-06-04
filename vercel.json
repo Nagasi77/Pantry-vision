@@ -1,55 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": {
-      "description": "Supabase Project URL",
-      "required": true
-    },
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
-      "description": "Supabase Anonymous Key (can be public)",
-      "required": true
-    },
-    "SUPABASE_SERVICE_ROLE_KEY": {
-      "description": "Supabase Service Role Key (keep secret)",
-      "required": false
-    },
-    "NEXTAUTH_SECRET": {
-      "description": "NextAuth Secret Key",
-      "required": true
-    },
-    "NEXTAUTH_URL": {
-      "description": "NextAuth URL (production domain)",
-      "required": true
-    },
-    "GOOGLE_CLIENT_ID": {
-      "description": "Google OAuth Client ID",
-      "required": false
-    },
-    "GOOGLE_CLIENT_SECRET": {
-      "description": "Google OAuth Client Secret",
-      "required": false
-    },
-    "GITHUB_ID": {
-      "description": "GitHub OAuth App ID",
-      "required": false
-    },
-    "GITHUB_SECRET": {
-      "description": "GitHub OAuth App Secret",
-      "required": false
-    },
-    "GMAIL_USER": {
-      "description": "Gmail address for sending emails",
-      "required": false
-    },
-    "GMAIL_APP_PASSWORD": {
-      "description": "Gmail app-specific password",
-      "required": false
-    },
-    "AZURE_SERVER_URL": {
-      "description": "Azure Function App URL (e.g., https://your-function-app.azurewebsites.net)",
-      "required": true
-    }
-  }
+  "framework": "nextjs"
 }
