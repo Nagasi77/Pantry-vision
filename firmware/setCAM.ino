@@ -25,7 +25,7 @@
 const char* ssid         = "Redmin";
 const char* password     = "11111111";
 const char* mqtt_server  = "broker.hivemq.com";
-const char* laptop_ip    = "172.27.232.205"; 
+const char* laptop_ip    = "192.168.1.106"; 
 const int   fastapi_port = 8000;
 
 WiFiClient espClient;
@@ -56,16 +56,24 @@ bool kirimFoto(camera_fb_t* fb) {
   http.begin(url);
   http.setTimeout(10000);
   http.addHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
-
   int code = http.POST(body, totalLen);
+  String resp = http.getString();
   free(body);
   http.end();
 
-  if (code == 200) {
+  Serial.printf("[HTTP] POST %s -> code=%d\n", url.c_str(), code);
+  if (resp.length() > 0) {
+    Serial.print("[HTTP] Body: ");
+    Serial.println(resp);
+  }
+
+  if (code == 200 || code == 201) {
     client.publish("pantry/status", "FOTO_OK");
     return true;
   } else {
-    client.publish("pantry/status", "FOTO_GAGAL");
+    // include code in published message for easier debugging
+    String errMsg = "FOTO_GAGAL:" + String(code);
+    client.publish("pantry/status", errMsg.c_str());
     return false;
   }
 }

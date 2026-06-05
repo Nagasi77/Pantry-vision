@@ -14,8 +14,14 @@ import uuid
 # ── Env ───────────────────────────────────────────────────────────────────────
 _here = os.path.dirname(os.path.abspath(__file__))
 _root = os.path.abspath(os.path.join(_here, "..", ".."))
-load_dotenv(os.path.join(_here, ".env.local"))
-load_dotenv(os.path.join(_root, ".env.local"))
+
+# Load .env.local hanya jika ada (untuk local dev; diabaikan di Azure)
+_env_local = os.path.join(_here, ".env.local")
+if os.path.exists(_env_local):
+    load_dotenv(_env_local)
+_env_root = os.path.join(_root, ".env.local")
+if os.path.exists(_env_root):
+    load_dotenv(_env_root)
 
 # ── Supabase ──────────────────────────────────────────────────────────────────
 SUPABASE_URL  = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
@@ -31,12 +37,14 @@ app = FastAPI(title="PantryVision AI Backend")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ── YOLO — 26 kelas custom ────────────────────────────────────────────────────
-# Model diload dari models/yolov8n.pt (custom trained 26 kelas Fresh/Rotten).
-# Karena file yang tersedia saat ini adalah COCO pretrained, kita override
-# nama kelas dengan CUSTOM_LABELS sehingga index 0-25 dipetakan ke label
-# yang benar. Ketika model custom 26-kelas tersedia, cukup ganti file .pt-nya
-# tanpa ubah kode apapun.
-MODEL_PATH = os.getenv("YOLO_MODEL_PATH", "models/yolov8n.pt")
+
+# ── Resolve model path 
+_default_model = os.path.join(_here, "models", "yolov8n.pt")
+MODEL_PATH = os.getenv("YOLO_MODEL_PATH", _default_model)
+
+if not os.path.exists(MODEL_PATH):
+    print(f"[WARN] Model tidak ditemukan di {MODEL_PATH}")
+    
 yolo_model = YOLO(MODEL_PATH)
 
 # 26 label sesuai urutan yang dikirim (index 0-25)
@@ -51,30 +59,26 @@ CUSTOM_LABELS: list[str] = [
     "RottenTomato",
 ]
 
-# Mapping COCO index → label custom (sementara sampai model custom tersedia)
+# Mapping COCO index → label custom 
 COCO_TO_CUSTOM: dict[int, str] = {
     46: "FreshBanana",
     47: "FreshApple",
     49: "FreshOrange",
-    50: "FreshBellpepper",   # broccoli COCO → paling mirip
+    50: "FreshBellpepper",  
     51: "FreshCarrot",
-    52: "FreshTomato",       # hotdog skip → tomato fallback
+    52: "FreshTomato",       
 }
 
 def _get_label(cls_idx: int) -> str:
     model_name = yolo_model.names.get(cls_idx, "")
-    # Model sudah custom — pakai langsung
     if model_name.startswith(("Fresh", "Rotten")):
         return model_name
-    # Model COCO — map ke custom label jika tersedia
     if cls_idx in COCO_TO_CUSTOM:
         return COCO_TO_CUSTOM[cls_idx]
-    # Index dalam range 26 kelas custom — pakai CUSTOM_LABELS
     if cls_idx < len(CUSTOM_LABELS):
         return CUSTOM_LABELS[cls_idx]
-    return None  # akan diskip
+    return None  
 
-# Nama Indonesia per komoditas
 NAME_MAP: dict[str, str] = {
     "Apple": "Apel",       "Banana": "Pisang",      "Bellpepper": "Paprika",
     "Bittergourd": "Pare", "Capsicum": "Cabai",     "Carrot": "Wortel",
@@ -238,6 +242,7 @@ async def predict_scan(
     """
     contents = await file.read()
     session_id = str(uuid.uuid4())
+    print(f"[API] /predict/iot received: {len(contents)} bytes, session={session_id}")
 
     # Upload ke Supabase Storage (tidak simpan lokal)
     image_url = upload_image_to_supabase(contents, f"scan_{session_id}.jpg")
@@ -245,7 +250,6 @@ async def predict_scan(
         image_url = None
         print("[WARN] Foto tidak tersimpan, Supabase storage belum dikonfigurasi.")
 
-    # Jalankan YOLO — iterasi semua bounding box (multi-object)
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
     results = yolo_model(image, conf=0.35, verbose=False)
 
@@ -395,6 +399,59 @@ async def get_latest_session():
     except Exception as e:
         print(f"[API] get_latest_session error: {e}")
         return {"session": None, "detections": []}
+
+
+@app.post("/predict/iot")
+async def predict_iot(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+):
+    """
+    Endpoint khusus IoT (ESP32-CAM).
+    Kirim foto dari ESP32-CAM, return detections dengan format minimal.
+    """
+    contents = await file.read()
+    session_id = str(uuid.uuid4())
+
+    # Jalankan YOLO
+    image   = Image.open(io.BytesIO(contents)).convert("RGB")
+    results = yolo_model(image, conf=0.35, verbose=False)
+
+    detections: list[dict] = []
+    for result in results:
+        for box in result.boxes:
+            cls_idx   = int(box.cls[0])
+            conf      = float(box.conf[0])
+            raw_label = _get_label(cls_idx)
+            if raw_label is None:
+                continue
+            parsed    = parse_label(raw_label)
+            detections.append({**parsed, "confidence": conf})
+
+    print(f"[API] /predict/iot -> detections: {len(detections)} items")
+
+    # Publish status ke MQTT
+    publish_kondisi(detections)
+
+    # Simpan ke Supabase (background task, tidak menunggu)
+    image_url = upload_image_to_supabase(contents, f"iot_{session_id}.jpg")
+    background_tasks.add_task(save_scan_session, session_id, image_url, detections, "IoT", None, None)
+    background_tasks.add_task(replace_pantry_items, detections, session_id)
+
+    # Response minimal untuk IoT
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "item_count": len(detections),
+        "detections": [
+            {
+                "item_name": d["item_name"],
+                "freshness_status": d["freshness_status"],
+                "confidence": round(d["confidence"] * 100, 1),
+            }
+            for d in detections
+        ],
+    }
 
 
 @app.get("/health")
