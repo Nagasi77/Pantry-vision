@@ -39,7 +39,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # ── YOLO — 26 kelas custom ────────────────────────────────────────────────────
 
 # ── Resolve model path 
-_default_model = os.path.join(_here, "models", "yolov8n.pt")
+_default_model = os.path.join(_here, "models", "best_fruit_freshness_yolov8.pt")
 MODEL_PATH = os.getenv("YOLO_MODEL_PATH", _default_model)
 
 if not os.path.exists(MODEL_PATH):
