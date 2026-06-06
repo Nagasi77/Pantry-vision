@@ -44,8 +44,17 @@ MODEL_PATH = os.getenv("YOLO_MODEL_PATH", _default_model)
 
 if not os.path.exists(MODEL_PATH):
     print(f"[WARN] Model tidak ditemukan di {MODEL_PATH}")
-    
-yolo_model = YOLO(MODEL_PATH)
+
+yolo_model = None
+
+def get_model():
+    """Lazy load YOLO model on first request."""
+    global yolo_model
+    if yolo_model is None:
+        print("[INIT] Loading YOLO model...")
+        yolo_model = YOLO(MODEL_PATH)
+        print("[INIT] YOLO model loaded successfully")
+    return yolo_model
 
 # 26 label sesuai urutan yang dikirim (index 0-25)
 CUSTOM_LABELS: list[str] = [
@@ -251,7 +260,7 @@ async def predict_scan(
         print("[WARN] Foto tidak tersimpan, Supabase storage belum dikonfigurasi.")
 
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = yolo_model(image, conf=0.35, verbose=False)
+    results = get_model()(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
@@ -316,7 +325,7 @@ async def predict_scan_annotated(
 
     # Jalankan YOLO
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = yolo_model(image, conf=0.35, verbose=False)
+    results = get_model()(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
@@ -415,7 +424,7 @@ async def predict_iot(
 
     # Jalankan YOLO
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = yolo_model(image, conf=0.35, verbose=False)
+    results = get_model()(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
@@ -456,12 +465,13 @@ async def predict_iot(
 
 @app.get("/health")
 async def health_check():
+    model = get_model()
     return {
         "status":            "PantryVision AI berjalan",
         "supabase_connected": supabase is not None,
         "model":             MODEL_PATH,
-        "total_classes":     len(yolo_model.names),
-        "using_custom_labels": not yolo_model.names.get(0, "").startswith("Fresh"),
+        "total_classes":     len(model.names),
+        "using_custom_labels": not model.names.get(0, "").startswith("Fresh"),
     }
 
 
