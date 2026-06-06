@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+ultralytics
+numpy
+pillow
+opencv-python
+paho-mqtt
+python-dotenv
+python-multipart
+supabase
