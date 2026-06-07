@@ -38,24 +38,45 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # ── YOLO — 26 kelas custom ────────────────────────────────────────────────────
 
-# ── Resolve model path 
-_default_model = os.path.join(_here, "models", "best_fruit_freshness_yolov8.pt")
-# _default_model = os.path.join(_here, "models", "best_fruit_freshness_multiobject_100epoch.pt")
-MODEL_PATH = os.getenv("YOLO_MODEL_PATH", _default_model)
+# ── Resolve model paths untuk 2 model berbeda ─────────────────────────────────
+# Model 1: IoT (untuk sensor page & /predict/iot)
+MODEL_IOT_PATH = os.getenv("YOLO_MODEL_IOT_PATH", 
+    os.path.join(_here, "models", "best_fruit_freshness_iot_yolov8.pt"))
 
-if not os.path.exists(MODEL_PATH):
-    print(f"[WARN] Model tidak ditemukan di {MODEL_PATH}")
+# Model 2: Multi-object (untuk scan page & /predict/scan*)
+MODEL_SCAN_PATH = os.getenv("YOLO_MODEL_SCAN_PATH", 
+    os.path.join(_here, "models", "best_fruit_freshness_multiobject_100epoch.pt"))
 
-yolo_model = None
+# Validasi ketersediaan model
+for model_name, model_path in [("IoT", MODEL_IOT_PATH), ("Scan", MODEL_SCAN_PATH)]:
+    if not os.path.exists(model_path):
+        print(f"[WARN] Model {model_name} tidak ditemukan di {model_path}")
+
+# Global model cache
+yolo_model_iot = None
+yolo_model_scan = None
+
+def get_model_iot():
+    """Lazy load IoT YOLO model for sensor endpoint."""
+    global yolo_model_iot
+    if yolo_model_iot is None:
+        print("[INIT] Loading IoT YOLO model...")
+        yolo_model_iot = YOLO(MODEL_IOT_PATH)
+        print("[INIT] IoT YOLO model loaded successfully")
+    return yolo_model_iot
+
+def get_model_scan():
+    """Lazy load Multi-object YOLO model for scan endpoints."""
+    global yolo_model_scan
+    if yolo_model_scan is None:
+        print("[INIT] Loading Scan YOLO model...")
+        yolo_model_scan = YOLO(MODEL_SCAN_PATH)
+        print("[INIT] Scan YOLO model loaded successfully")
+    return yolo_model_scan
 
 def get_model():
-    """Lazy load YOLO model on first request."""
-    global yolo_model
-    if yolo_model is None:
-        print("[INIT] Loading YOLO model...")
-        yolo_model = YOLO(MODEL_PATH)
-        print("[INIT] YOLO model loaded successfully")
-    return yolo_model
+    """Deprecated: kept for backward compatibility. Use get_model_iot() or get_model_scan()"""
+    return get_model_scan()
 
 # 26 label sesuai urutan yang dikirim (index 0-25)
 CUSTOM_LABELS: list[str] = [
@@ -247,12 +268,13 @@ async def predict_scan(
     jarak: float | None = None,
 ):
     """
-    Terima foto, jalankan YOLO, simpan scan_session + scan_detections,
+    Terima foto, jalankan YOLO multi-object, simpan scan_session + scan_detections,
     replace pantry_items dengan hasil terbaru.
+    Uses: best_fruit_freshness_multiobject_100epoch.pt
     """
     contents = await file.read()
     session_id = str(uuid.uuid4())
-    print(f"[API] /predict/iot received: {len(contents)} bytes, session={session_id}")
+    print(f"[API] /predict/scan received: {len(contents)} bytes, session={session_id}, source={source}")
 
     # Upload ke Supabase Storage (tidak simpan lokal)
     image_url = upload_image_to_supabase(contents, f"scan_{session_id}.jpg")
@@ -261,7 +283,7 @@ async def predict_scan(
         print("[WARN] Foto tidak tersimpan, Supabase storage belum dikonfigurasi.")
 
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = get_model()(image, conf=0.35, verbose=False)
+    results = get_model_scan()(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
@@ -308,6 +330,7 @@ async def predict_scan_annotated(
     """
     Sama seperti /predict/scan, tapi juga mengembalikan gambar
     hasil anotasi YOLO (bounding box + label) sebagai base64.
+    Uses: best_fruit_freshness_multiobject_100epoch.pt
     """
     import base64
     import cv2
@@ -324,9 +347,9 @@ async def predict_scan_annotated(
         image_url = None
         print(f"[WARN] Foto tidak tersimpan, Supabase storage belum dikonfigurasi.")
 
-    # Jalankan YOLO
+    # Jalankan YOLO multi-object
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = get_model()(image, conf=0.35, verbose=False)
+    results = get_model_scan()(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
@@ -419,13 +442,14 @@ async def predict_iot(
     """
     Endpoint khusus IoT (ESP32-CAM).
     Kirim foto dari ESP32-CAM, return detections dengan format minimal.
+    Uses: best_fruit_freshness_iot_yolov8.pt
     """
     contents = await file.read()
     session_id = str(uuid.uuid4())
 
-    # Jalankan YOLO
+    # Jalankan YOLO IoT
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = get_model()(image, conf=0.35, verbose=False)
+    results = get_model_iot()(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
@@ -466,13 +490,17 @@ async def predict_iot(
 
 @app.get("/health")
 async def health_check():
-    model = get_model()
+    model_iot = get_model_iot()
+    model_scan = get_model_scan()
     return {
-        "status":            "PantryVision AI berjalan",
+        "status":             "PantryVision AI berjalan",
         "supabase_connected": supabase is not None,
-        "model":             MODEL_PATH,
-        "total_classes":     len(model.names),
-        "using_custom_labels": not model.names.get(0, "").startswith("Fresh"),
+        "models": {
+            "iot_model":      MODEL_IOT_PATH,
+            "scan_model":     MODEL_SCAN_PATH,
+            "iot_classes":    len(model_iot.names),
+            "scan_classes":   len(model_scan.names),
+        },
     }
 
 
