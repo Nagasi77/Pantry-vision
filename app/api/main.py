@@ -100,8 +100,8 @@ COCO_TO_CUSTOM: dict[int, str] = {
     52: "FreshTomato",       
 }
 
-def _get_label(cls_idx: int) -> str:
-    model_name = yolo_model.names.get(cls_idx, "")
+def _get_label(cls_idx: int, model=None) -> str:
+    model_name = model.names.get(cls_idx, "") if model else ""
     if model_name.startswith(("Fresh", "Rotten")):
         return model_name
     if cls_idx in COCO_TO_CUSTOM:
@@ -283,14 +283,15 @@ async def predict_scan(
         print("[WARN] Foto tidak tersimpan, Supabase storage belum dikonfigurasi.")
 
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = get_model_scan()(image, conf=0.35, verbose=False)
+    model_scan = get_model_scan()
+    results = model_scan(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
         for box in result.boxes:
             cls_idx   = int(box.cls[0])
             conf      = float(box.conf[0])
-            raw_label = _get_label(cls_idx)
+            raw_label = _get_label(cls_idx, model_scan)
             if raw_label is None:
                 continue   # skip kelas COCO non-produce
             parsed    = parse_label(raw_label)
@@ -349,14 +350,15 @@ async def predict_scan_annotated(
 
     # Jalankan YOLO multi-object
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = get_model_scan()(image, conf=0.35, verbose=False)
+    model_scan = get_model_scan()
+    results = model_scan(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
         for box in result.boxes:
             cls_idx   = int(box.cls[0])
             conf      = float(box.conf[0])
-            raw_label = _get_label(cls_idx)
+            raw_label = _get_label(cls_idx, model_scan)
             if raw_label is None:
                 continue   # skip non-produce
             parsed    = parse_label(raw_label)
@@ -449,14 +451,15 @@ async def predict_iot(
 
     # Jalankan YOLO IoT
     image   = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = get_model_iot()(image, conf=0.35, verbose=False)
+    model_iot = get_model_iot()
+    results = model_iot(image, conf=0.35, verbose=False)
 
     detections: list[dict] = []
     for result in results:
         for box in result.boxes:
             cls_idx   = int(box.cls[0])
             conf      = float(box.conf[0])
-            raw_label = _get_label(cls_idx)
+            raw_label = _get_label(cls_idx, model_iot)
             if raw_label is None:
                 continue
             parsed    = parse_label(raw_label)

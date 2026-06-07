@@ -10,6 +10,8 @@ import {
   ZoomIn,
   ZoomOut,
   Clock,
+  PauseCircle,
+  PlayCircle,
 } from "lucide-react";
 import mqtt from "mqtt";
 
@@ -165,6 +167,7 @@ export default function SensorPage() {
   // Hasil scan
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
   // Zoom states
@@ -211,6 +214,7 @@ export default function SensorPage() {
 
   // ── Fetch latest scan dari DB ─────────────────────────────────────────
   const fetchLatestScan = useCallback(async () => {
+    if (isPaused) return; // skip jika kamera dijeda
     setIsScanning(true);
     setScanError(null);
     try {
@@ -242,10 +246,11 @@ export default function SensorPage() {
     } finally {
       setIsScanning(false);
     }
-  }, []);
+  }, [isPaused]);
 
   // ── Trigger ESP32-CAM via MQTT ────────────────────────────────────────
   const triggerHardwareScan = useCallback(() => {
+    setIsPaused(false); // resume otomatis saat jepret
     mqttClientRef.current?.publish("pantry/perintah", "AMBIL_FOTO");
     setTimeout(fetchLatestScan, 3500);
   }, [fetchLatestScan]);
@@ -303,6 +308,14 @@ export default function SensorPage() {
               </p>
             </div>
           </div>
+
+          {/* Paused indicator */}
+          {isPaused && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest">
+              <PauseCircle size={13} />
+              Kamera dijeda — tekan Jepret untuk lanjut
+            </div>
+          )}
 
           {/* Gauge summary */}
           {scanResult && (
@@ -500,6 +513,22 @@ export default function SensorPage() {
             >
               <RefreshCw size={12} className={isScanning ? "animate-spin" : ""} />
               Sync Data
+            </button>
+            <button
+              onClick={() => setIsPaused((v) => !v)}
+              disabled={isScanning}
+              title={isPaused ? "Kamera sedang dijeda — tekan Jepret untuk lanjut" : "Jeda tangkapan kamera"}
+              className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-5 py-3 rounded-xl transition-all disabled:opacity-40 ${
+                isPaused
+                  ? "bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-900/30"
+                  : "bg-white/10 hover:bg-white/20 text-white"
+              }`}
+            >
+              {isPaused ? (
+                <><PlayCircle size={13} /> Dijeda</>
+              ) : (
+                <><PauseCircle size={13} /> Pause</>
+              )}
             </button>
             <button
               onClick={triggerHardwareScan}
