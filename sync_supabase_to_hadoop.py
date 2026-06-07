@@ -41,8 +41,8 @@ load_dotenv(env_path)
 
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-SUPABASE_SYNC_TABLE = os.getenv("SUPABASE_SYNC_TABLE", "detections")
-SUPABASE_TIMESTAMP_FIELD = os.getenv("SUPABASE_TIMESTAMP_FIELD", "timestamp")
+SUPABASE_SYNC_TABLE = os.getenv("SUPABASE_SYNC_TABLE", "scan_sessions")
+SUPABASE_TIMESTAMP_FIELD = os.getenv("SUPABASE_TIMESTAMP_FIELD", "scanned_at")
 HDFS_URL = os.getenv("HDFS_URL", "http://localhost:9870")
 HDFS_USER = os.getenv("HDFS_USER", "hdfs")
 HDFS_BASE_DIR = os.getenv("HDFS_BASE_DIR", "/user/pantry_vision")
@@ -69,7 +69,7 @@ def save_state(state: dict[str, str]) -> None:
 
 
 def fetch_new_records(last_timestamp: str | None) -> list[dict]:
-    query = supabase.from_(SUPABASE_SYNC_TABLE).select("*")
+    query = supabase.from_(SUPABASE_SYNC_TABLE).select("*", count="exact")
 
     if last_timestamp:
         query = query.gte(SUPABASE_TIMESTAMP_FIELD, last_timestamp)
@@ -78,6 +78,7 @@ def fetch_new_records(last_timestamp: str | None) -> list[dict]:
     
     try:
         response = query.execute()
+        logging.info(f"Total records available: {response.count}")
         return response.data or []
     except Exception as exc:
         raise RuntimeError(f"Supabase query error: {exc}") from exc
