@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { supabase } from '../../lib/supabase'
 import { getRecipesByIngredients } from '../../lib/recipeService'
-import { Loader2, Utensils, ChefHat, ArrowRight } from 'lucide-react'
+import { Loader2, Utensils, ChefHat, ArrowRight, Flame } from 'lucide-react'
 import { RecipeModal } from '../../../components/resep/RecipeModal'
 
 export default function ResepPage() {
@@ -18,7 +18,7 @@ export default function ResepPage() {
     async function fetchInventoryAndRecipes() {
       try {
         setLoading(true)
-        
+
         // 1. Ambil semua bahan makanan yang "Segar" (Publik)
         const { data: items, error } = await supabase
           .from('pantry_items')
@@ -30,11 +30,11 @@ export default function ResepPage() {
         const itemNames = items?.map(i => i.item_name) || []
         setAvailableItems(itemNames)
 
-        // 2. Dapatkan rekomendasi resep berdasarkan semua bahan yang ada
+        // 2. Dapatkan rekomendasi resep dari Supabase
         const recommended = await getRecipesByIngredients(itemNames)
         setRecipes(recommended)
       } catch (err) {
-        console.error("Error fetching recipes:", err)
+        console.error('Error fetching recipes:', err)
       } finally {
         setLoading(false)
       }
@@ -43,11 +43,13 @@ export default function ResepPage() {
     fetchInventoryAndRecipes()
   }, [])
 
-  if (status === "loading" || loading) {
+  if (status === 'loading' || loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
         <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
-        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Mencari Inspirasi Masak...</p>
+        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+          Mencari Inspirasi Masak...
+        </p>
       </div>
     )
   }
@@ -59,14 +61,21 @@ export default function ResepPage() {
           <ChefHat className="text-green-600" size={32} />
           Inspirasi Dapur
         </h2>
-        <p className="text-slate-500 font-medium">Resep pilihan berdasarkan stok segar di pantry Anda.</p>
+        <p className="text-slate-500 font-medium">
+          Resep pilihan berdasarkan stok segar di pantry Anda.
+        </p>
       </div>
 
       {availableItems.length > 0 ? (
         <div className="flex flex-wrap gap-2 mb-8">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mr-2 py-2">Bahan Anda:</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mr-2 py-2">
+            Bahan Anda:
+          </span>
           {availableItems.map((item, idx) => (
-            <span key={idx} className="px-4 py-2 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100">
+            <span
+              key={idx}
+              className="px-4 py-2 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100"
+            >
               {item}
             </span>
           ))}
@@ -79,27 +88,49 @@ export default function ResepPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {recipes.length > 0 ? (
-          recipes.map((recipe) => (
-            <div key={recipe.id} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden hover:scale-[1.02] transition-all group">
+          recipes.map(recipe => (
+            <div
+              key={recipe.id}
+              className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden hover:scale-[1.02] transition-all group"
+            >
               <div className="h-48 overflow-hidden relative">
-                <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                <img
+                  src={recipe.image}
+                  alt={recipe.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase text-green-600 shadow-sm">
                   {recipe.ingredients.length} Bahan
                 </div>
               </div>
               <div className="p-8 space-y-4">
-                <h3 className="text-xl font-black text-slate-800 leading-tight">{recipe.title}</h3>
+                <h3 className="text-xl font-black text-slate-800 leading-tight">
+                  {recipe.title}
+                </h3>
+
+                {/* Kalori */}
+                {recipe.calories && (
+                  <div className="flex items-center gap-1 text-sm font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full w-fit">
+                    <Flame size={14} /> {recipe.calories} kkal
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bahan Utama:</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Bahan Utama:
+                  </p>
                   <div className="flex flex-wrap gap-1">
                     {recipe.ingredients.map((ing: string, i: number) => (
-                      <span key={i} className="text-[11px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-md">
+                      <span
+                        key={i}
+                        className="text-[11px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-md"
+                      >
                         {ing}
                       </span>
                     ))}
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedRecipe(recipe)}
                   className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
                 >
@@ -111,13 +142,18 @@ export default function ResepPage() {
         ) : (
           <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-300">
             <Utensils size={64} strokeWidth={1} />
-            <p className="mt-4 text-sm font-bold uppercase tracking-widest">Belum ada resep yang cocok</p>
+            <p className="mt-4 text-sm font-bold uppercase tracking-widest">
+              Belum ada resep yang cocok
+            </p>
           </div>
         )}
       </div>
 
       {/* MODAL DETAIL RESEP */}
-      <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
+      <RecipeModal
+        recipe={selectedRecipe}
+        onClose={() => setSelectedRecipe(null)}
+      />
     </div>
   )
 }

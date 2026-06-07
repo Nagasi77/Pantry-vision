@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, AlertCircle, Camera, RefreshCw, Clock, PackageSearch } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  Camera,
+  RefreshCw,
+  Clock,
+  PackageSearch,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -36,11 +43,29 @@ type InventoryItem = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function normalizeConfidence(confidence: number) {
+  if (!Number.isFinite(confidence)) return 0;
+
+  const percent = confidence <= 1 ? confidence * 100 : confidence;
+  return Math.round(Math.max(0, Math.min(100, percent)));
+}
+
+function isSegar(status: string) {
+  return status?.toLowerCase() === "segar";
+}
+
+function isBusuk(status: string) {
+  return status?.toLowerCase() === "busuk";
+}
+
 function aggregateDetections(detections: ScanDetection[]): InventoryItem[] {
   const map: Record<string, InventoryItem> = {};
+
   for (const d of detections) {
-    if (!map[d.item_name]) {
-      map[d.item_name] = {
+    const key = d.item_name;
+
+    if (!map[key]) {
+      map[key] = {
         item_name: d.item_name,
         icon: d.icon,
         freshness_status: d.freshness_status,
@@ -48,41 +73,50 @@ function aggregateDetections(detections: ScanDetection[]): InventoryItem[] {
         avg_confidence: 0,
       };
     }
-    map[d.item_name].quantity += 1;
-    map[d.item_name].avg_confidence += d.confidence * 100;
-    // Jika ada satu yang busuk, status jadi Busuk
-    if (d.freshness_status === "Busuk") {
-      map[d.item_name].freshness_status = "Busuk";
+
+    map[key].quantity += 1;
+    map[key].avg_confidence += normalizeConfidence(d.confidence);
+
+    // Jika dalam satu jenis item ada yang busuk, status kartu item menjadi Busuk
+    if (isBusuk(d.freshness_status)) {
+      map[key].freshness_status = "Busuk";
     }
   }
+
   return Object.values(map).map((item) => ({
     ...item,
-    avg_confidence: Math.round(item.avg_confidence / item.quantity),
+    avg_confidence:
+      item.quantity > 0 ? Math.round(item.avg_confidence / item.quantity) : 0,
   }));
 }
 
 function formatDate(iso: string) {
   const d = new Date(iso);
+
   return d.toLocaleDateString("id-ID", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 }
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("id-ID", {
-    hour: "2-digit", minute: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 function freshnessColor(status: string) {
-  if (status === "Segar") return "bg-green-100 text-green-700 border-green-200";
-  if (status === "Busuk") return "bg-red-100 text-red-700 border-red-200";
+  if (isSegar(status)) return "bg-green-100 text-green-700 border-green-200";
+  if (isBusuk(status)) return "bg-red-100 text-red-700 border-red-200";
   return "bg-slate-100 text-slate-600 border-slate-200";
 }
 
 function freshnessBar(status: string) {
-  if (status === "Segar") return "bg-green-500";
-  if (status === "Busuk") return "bg-red-500";
+  if (isSegar(status)) return "bg-green-500";
+  if (isBusuk(status)) return "bg-red-500";
   return "bg-slate-400";
 }
 
@@ -90,9 +124,11 @@ function freshnessBar(status: string) {
 
 export default function InventoriPage() {
   const { status } = useSession();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<ScanSession | null>(null);
+  const [detections, setDetections] = useState<ScanDetection[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [imgExpanded, setImgExpanded] = useState(false);
 
@@ -102,14 +138,23 @@ export default function InventoriPage() {
       setError(null);
 
       const res = await fetch("/api/ai/iot-latest");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
       const data = await res.json();
 
+      const rawDetections: ScanDetection[] = data.detections ?? [];
+
       setSession(data.session ?? null);
-      setItems(aggregateDetections(data.detections ?? []));
+      setDetections(rawDetections);
+      setItems(aggregateDetections(rawDetections));
     } catch (err: any) {
       console.error("fetchLatest error:", err);
-      setError("Gagal memuat data inventori: " + (err.message || "Unknown error"));
+      setError(
+        "Gagal memuat data inventori: " + (err.message || "Unknown error")
+      );
     } finally {
       setLoading(false);
     }
@@ -158,20 +203,40 @@ export default function InventoriPage() {
     );
   }
 
-  const segarCount = items.filter((i) => i.freshness_status === "Segar").length;
-  const busukCount = items.filter((i) => i.freshness_status === "Busuk").length;
+  const totalItemCount =
+    detections.length > 0
+      ? detections.length
+      : items.reduce((total, item) => total + item.quantity, 0);
+
+  const totalJenisItem = items.length;
+
+  const segarCount =
+    detections.length > 0
+      ? detections.filter((d) => isSegar(d.freshness_status)).length
+      : items
+          .filter((item) => isSegar(item.freshness_status))
+          .reduce((total, item) => total + item.quantity, 0);
+
+  const busukCount =
+    detections.length > 0
+      ? detections.filter((d) => isBusuk(d.freshness_status)).length
+      : items
+          .filter((item) => isBusuk(item.freshness_status))
+          .reduce((total, item) => total + item.quantity, 0);
 
   return (
     <div className="space-y-8 pb-12">
-
       {/* ── Header refresh ─────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Inventori Pantry</h2>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+            Inventori Pantry
+          </h2>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
             Hasil scan terakhir
           </p>
         </div>
+
         <button
           onClick={fetchLatest}
           disabled={loading}
@@ -184,7 +249,7 @@ export default function InventoriPage() {
 
       {/* ── Foto Scan Terakhir ─────────────────────────────────────────── */}
       <div className="bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl">
-        <div className="p-6 flex items-center justify-between border-b border-white/5">
+        <div className="p-6 flex items-center justify-between gap-4 border-b border-white/5">
           <div className="flex items-center gap-3">
             <div className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
@@ -194,6 +259,7 @@ export default function InventoriPage() {
               Foto Scan Terakhir
             </span>
           </div>
+
           <div className="flex items-center gap-2 text-slate-400">
             <Clock size={12} />
             <span className="text-[10px] font-bold uppercase tracking-widest">
@@ -212,10 +278,11 @@ export default function InventoriPage() {
               }`}
               onClick={() => setImgExpanded((v) => !v)}
             />
+
             <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
               {imgExpanded ? "Klik untuk perkecil" : "Klik untuk perbesar"}
             </div>
-            {/* Sumber perangkat */}
+
             <div className="absolute top-3 left-3 bg-green-600/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
               {session.device_source}
             </div>
@@ -223,7 +290,9 @@ export default function InventoriPage() {
         ) : (
           <div className="h-52 flex items-center justify-center text-slate-600 flex-col gap-3">
             <Camera size={36} strokeWidth={1} />
-            <p className="text-xs font-bold uppercase tracking-widest">Foto tidak tersedia</p>
+            <p className="text-xs font-bold uppercase tracking-widest">
+              Foto tidak tersedia
+            </p>
           </div>
         )}
 
@@ -232,16 +301,29 @@ export default function InventoriPage() {
           <div className="px-6 py-4 grid grid-cols-2 gap-3 border-t border-white/5">
             {session.gas_status && (
               <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Gas</p>
-                <p className={`text-sm font-black ${session.gas_status === "Normal" ? "text-green-400" : "text-red-400"}`}>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                  Gas
+                </p>
+                <p
+                  className={`text-sm font-black ${
+                    session.gas_status === "Normal"
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
                   {session.gas_status}
                 </p>
               </div>
             )}
+
             {session.jarak_cm != null && (
               <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Jarak</p>
-                <p className="text-sm font-black text-white">{session.jarak_cm} cm</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                  Jarak
+                </p>
+                <p className="text-sm font-black text-white">
+                  {session.jarak_cm} cm
+                </p>
               </div>
             )}
           </div>
@@ -249,10 +331,30 @@ export default function InventoriPage() {
       </div>
 
       {/* ── Summary Cards ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <SummaryCard label="Total Item" value={items.length} color="text-slate-800" />
-        <SummaryCard label="Segar" value={segarCount} color="text-green-600" />
-        <SummaryCard label="Busuk / Perlu Dibuang" value={busukCount} color="text-red-500" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <SummaryCard
+          label="Total Item"
+          value={totalItemCount}
+          color="text-slate-800"
+        />
+
+        <SummaryCard
+          label="Jenis Item"
+          value={totalJenisItem}
+          color="text-blue-600"
+        />
+
+        <SummaryCard
+          label="Segar"
+          value={segarCount}
+          color="text-green-600"
+        />
+
+        <SummaryCard
+          label="Busuk / Perlu Dibuang"
+          value={busukCount}
+          color="text-red-500"
+        />
       </div>
 
       {/* ── Daftar Item ────────────────────────────────────────────────── */}
@@ -277,14 +379,23 @@ export default function InventoriPage() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SummaryCard({
-  label, value, color,
+  label,
+  value,
+  color,
 }: {
-  label: string; value: number | string; color: string;
+  label: string;
+  value: number | string;
+  color: string;
 }) {
   return (
     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-center hover:scale-[1.02] transition-transform">
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
-      <p className={`text-4xl font-black tracking-tighter leading-none ${color}`}>{value}</p>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+        {label}
+      </p>
+
+      <p className={`text-4xl font-black tracking-tighter leading-none ${color}`}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -293,20 +404,26 @@ function InventoryCard({ item }: { item: InventoryItem }) {
   return (
     <div className="bg-white p-6 rounded-[2.5rem] border border-slate-50 shadow-sm hover:border-slate-200 hover:shadow-md transition-all">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-slate-100">
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-slate-100 flex-shrink-0">
             {item.icon}
           </div>
-          <div>
-            <p className="font-black text-slate-800 leading-none tracking-tight">{item.item_name}</p>
+
+          <div className="min-w-0">
+            <p className="font-black text-slate-800 leading-none tracking-tight truncate">
+              {item.item_name}
+            </p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">
               {item.quantity} terdeteksi
             </p>
           </div>
         </div>
+
         <span
-          className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tight border ${freshnessColor(item.freshness_status)}`}
+          className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tight border flex-shrink-0 ${freshnessColor(
+            item.freshness_status
+          )}`}
         >
           {item.freshness_status}
         </span>
@@ -318,9 +435,12 @@ function InventoryCard({ item }: { item: InventoryItem }) {
           <span>Keyakinan Model</span>
           <span>{item.avg_confidence}%</span>
         </div>
+
         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-700 ${freshnessBar(item.freshness_status)}`}
+            className={`h-full rounded-full transition-all duration-700 ${freshnessBar(
+              item.freshness_status
+            )}`}
             style={{ width: `${item.avg_confidence}%` }}
           />
         </div>
