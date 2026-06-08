@@ -1,103 +1,108 @@
-import fs from 'fs'
-import path from 'path'
-import React from 'react'
+import fs from 'fs';
+import path from 'path';
+import React from 'react';
+import SyncButton from './SyncButton';
 
-type Detection = { [k: string]: any }
+type Detection = { [k: string]: any };
 
 function normalizeLabel(it: Detection) {
-  return (it.display_label ?? it.raw_label ?? 'Unknown') as string
+  return (it.display_label ?? it.raw_label ?? 'Unknown') as string;
 }
 
 function normalizeConfidence(v: any) {
-  const n = Number(v)
-  if (Number.isNaN(n)) return undefined
-  if (n > 1 && n <= 100) return n // already percent
-  return n * 100 // assume 0..1
+  const n = Number(v);
+  if (Number.isNaN(n)) return undefined;
+  if (n > 1 && n <= 100) return n;
+  return n * 100;
 }
 
-export default function Page() {
-  const dir = path.join(process.cwd(), 'hdfs_sync')
-  let files: string[] = []
+export default async function HadoopPage() {
+  const dir = path.join(process.cwd(), 'hdfs_sync');
+  let files: string[] = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'))
+    files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'));
   } catch (e) {
-    files = []
+    files = [];
   }
 
   const data = files.map((f) => {
     try {
-      const content = fs.readFileSync(path.join(dir, f), 'utf8')
-      const parsed = JSON.parse(content)
-      return { file: f, items: Array.isArray(parsed) ? parsed : [parsed] }
+      const content = fs.readFileSync(path.join(dir, f), 'utf8');
+      const parsed = JSON.parse(content);
+      return { file: f, items: Array.isArray(parsed) ? parsed : [parsed] };
     } catch (e) {
-      return { file: f, items: [] }
+      return { file: f, items: [] };
     }
-  })
+  });
 
-  const flat: Detection[] = data.flatMap((d) => d.items)
-
-  const total = flat.length
-  const counts: Record<string, number> = {}
-  let confSum = 0
-  let confCount = 0
+  const flat: Detection[] = data.flatMap((d) => d.items);
+  const total = flat.length;
+  const counts: Record<string, number> = {};
+  let confSum = 0;
+  let confCount = 0;
 
   flat.forEach((it) => {
-    const label = normalizeLabel(it)
-    counts[label] = (counts[label] || 0) + 1
-    const c = normalizeConfidence(it.confidence)
+    const label = normalizeLabel(it);
+    counts[label] = (counts[label] || 0) + 1;
+    const c = normalizeConfidence(it.confidence);
     if (c !== undefined) {
-      confSum += c
-      confCount += 1
+      confSum += c;
+      confCount += 1;
     }
-  })
+  });
 
-  const uniqueLabels = Object.keys(counts).length
+  const uniqueLabels = Object.keys(counts).length;
   const topLabels = Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-
-  const avgConfidence = confCount > 0 ? confSum / confCount : undefined
+    .slice(0, 5);
+  const avgConfidence = confCount > 0 ? confSum / confCount : undefined;
 
   const recent = flat
     .slice()
     .sort((a, b) => {
-      const ta = a.timestamp ? Date.parse(String(a.timestamp)) : 0
-      const tb = b.timestamp ? Date.parse(String(b.timestamp)) : 0
-      return tb - ta
+      const ta = a.timestamp ? Date.parse(String(a.timestamp)) : 0;
+      const tb = b.timestamp ? Date.parse(String(b.timestamp)) : 0;
+      return tb - ta;
     })
-    .slice(0, 10)
+    .slice(0, 10);
 
-  // compute daily trend for the last 14 days
-  const dateCounts: Record<string, { count: number; confSum: number; confCount: number }> = {}
+  // Daily trend last 14 days
+  const dateCounts: Record<string, { count: number; confSum: number; confCount: number }> = {};
   flat.forEach((it) => {
-    const ta = it.timestamp ? Date.parse(String(it.timestamp)) : NaN
+    const ta = it.timestamp ? Date.parse(String(it.timestamp)) : NaN;
     if (!Number.isNaN(ta)) {
-      const d = new Date(ta)
-      const key = d.toISOString().slice(0, 10)
-      const c = normalizeConfidence(it.confidence)
-      if (!dateCounts[key]) dateCounts[key] = { count: 0, confSum: 0, confCount: 0 }
-      dateCounts[key].count += 1
+      const d = new Date(ta);
+      const key = d.toISOString().slice(0, 10);
+      const c = normalizeConfidence(it.confidence);
+      if (!dateCounts[key]) dateCounts[key] = { count: 0, confSum: 0, confCount: 0 };
+      dateCounts[key].count += 1;
       if (c !== undefined) {
-        dateCounts[key].confSum += c
-        dateCounts[key].confCount += 1
+        dateCounts[key].confSum += c;
+        dateCounts[key].confCount += 1;
       }
     }
-  })
+  });
 
-  const days = 14
-  const today = new Date()
+  const days = 14;
+  const today = new Date();
   const trend = Array.from({ length: days }).map((_, i) => {
-    const d = new Date(today)
-    d.setDate(today.getDate() - (days - 1 - i))
-    const key = d.toISOString().slice(0, 10)
-    const entry = dateCounts[key] || { count: 0, confSum: 0, confCount: 0 }
-    const avg = entry.confCount > 0 ? entry.confSum / entry.confCount : undefined
-    return { date: key, count: entry.count, avgConfidence: avg }
-  })
+    const d = new Date(today);
+    d.setDate(today.getDate() - (days - 1 - i));
+    const key = d.toISOString().slice(0, 10);
+    const entry = dateCounts[key] || { count: 0, confSum: 0, confCount: 0 };
+    const avg = entry.confCount > 0 ? entry.confSum / entry.confCount : undefined;
+    return { date: key, count: entry.count, avgConfidence: avg };
+  });
+
   return (
     <main style={{ padding: 20 }}>
-      <h1>Hadoop Demo — Processed Summary</h1>
-      <p>Data read from <code>hdfs_sync/</code>. Summary below is computed from synced detection JSON files.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Hadoop Demo — Processed Summary</h1>
+        <SyncButton />
+      </div>
+      <p>
+        Data read from <code>hdfs_sync/</code>. Summary below is computed from synced detection JSON files.
+      </p>
 
       <section style={{ marginBottom: 20 }}>
         <h2>Summary</h2>
@@ -137,17 +142,18 @@ export default function Page() {
         ) : (
           <ul style={{ fontFamily: 'monospace' }}>
             {(() => {
-              const max = Math.max(...trend.map((t) => t.count), 1)
+              const max = Math.max(...trend.map((t) => t.count), 1);
               return trend.map((t) => {
-                const barLen = Math.round((t.count / max) * 20)
-                const bar = '█'.repeat(barLen) + ' '.repeat(20 - barLen)
+                const barLen = Math.round((t.count / max) * 20);
+                const bar = '█'.repeat(barLen) + ' '.repeat(20 - barLen);
                 return (
                   <li key={t.date} style={{ marginBottom: 6 }}>
-                    <strong>{t.date}</strong> — {t.count} detections {t.avgConfidence !== undefined ? `— ${t.avgConfidence.toFixed(1)}%` : ''}
+                    <strong>{t.date}</strong> — {t.count} detections{' '}
+                    {t.avgConfidence !== undefined ? `— ${t.avgConfidence.toFixed(1)}%` : ''}
                     <div style={{ fontSize: 12 }}>{bar}</div>
                   </li>
-                )
-              })
+                );
+              });
             })()}
           </ul>
         )}
@@ -182,5 +188,5 @@ export default function Page() {
         )}
       </section>
     </main>
-  )
+  );
 }

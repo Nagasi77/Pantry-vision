@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { supabase } from '../../lib/supabase'
 import { getRecipesByIngredients } from '../../lib/recipeService'
 import { Loader2, Utensils, ChefHat, ArrowRight, Flame } from 'lucide-react'
 import { RecipeModal } from '../../../components/resep/RecipeModal'
@@ -19,19 +18,24 @@ export default function ResepPage() {
       try {
         setLoading(true)
 
-        // 1. Ambil semua bahan makanan yang "Segar" (Publik)
-        const { data: items, error } = await supabase
-          .from('pantry_items')
-          .select('item_name')
-          .eq('freshness_status', 'Segar')
+        // 1. Ambil data scan terbaru dari API yang sama dengan Inventori
+        const res = await fetch('/api/ai/iot-latest')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
 
-        if (error) throw error
+        const detections = data.detections ?? []
 
-        const itemNames = items?.map(i => i.item_name) || []
-        setAvailableItems(itemNames)
+        // 2. Ambil item_name yang statusnya "Segar" (case‑insensitive)
+        const segarItems: string[] = detections
+          .filter((d: any) => d.freshness_status?.toLowerCase() === 'segar')
+          .map((d: any) => d.item_name)
 
-        // 2. Dapatkan rekomendasi resep dari Supabase
-        const recommended = await getRecipesByIngredients(itemNames)
+        // 3. Hilangkan duplikat
+        const uniqueItems = [...new Set(segarItems)] as string[]
+        setAvailableItems(uniqueItems)
+
+        // 4. Cari resep berdasarkan bahan segar tersebut
+        const recommended = await getRecipesByIngredients(uniqueItems)
         setRecipes(recommended)
       } catch (err) {
         console.error('Error fetching recipes:', err)
@@ -40,8 +44,10 @@ export default function ResepPage() {
       }
     }
 
-    fetchInventoryAndRecipes()
-  }, [])
+    if (status !== 'loading') {
+      fetchInventoryAndRecipes()
+    }
+  }, [status])
 
   if (status === 'loading' || loading) {
     return (
@@ -62,14 +68,14 @@ export default function ResepPage() {
           Inspirasi Dapur
         </h2>
         <p className="text-slate-500 font-medium">
-          Resep pilihan berdasarkan stok segar di pantry Anda.
+          Resep pilihan berdasarkan stok segar di pantry Anda (hasil scan terbaru).
         </p>
       </div>
 
       {availableItems.length > 0 ? (
         <div className="flex flex-wrap gap-2 mb-8">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mr-2 py-2">
-            Bahan Anda:
+            Bahan Tersedia:
           </span>
           {availableItems.map((item, idx) => (
             <span
@@ -108,7 +114,6 @@ export default function ResepPage() {
                   {recipe.title}
                 </h3>
 
-                {/* Kalori */}
                 {recipe.calories && (
                   <div className="flex items-center gap-1 text-sm font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full w-fit">
                     <Flame size={14} /> {recipe.calories} kkal
@@ -149,7 +154,6 @@ export default function ResepPage() {
         )}
       </div>
 
-      {/* MODAL DETAIL RESEP */}
       <RecipeModal
         recipe={selectedRecipe}
         onClose={() => setSelectedRecipe(null)}
