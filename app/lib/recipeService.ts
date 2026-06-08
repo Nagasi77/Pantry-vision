@@ -28,8 +28,8 @@ export async function getRecipesByIngredients(userIngredients: string[]) {
 
   return recipesWithIngredients
     .filter(recipe =>
-      recipe.ingredients.some(ing =>
-        normalizedUserIngredients.includes(ing.toLowerCase().trim())
+        recipe.ingredients.some((ing: string) =>
+          normalizedUserIngredients.includes(ing.toLowerCase().trim())
       )
     )
     .map(r => ({
