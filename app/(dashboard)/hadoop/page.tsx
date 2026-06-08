@@ -95,98 +95,203 @@ export default async function HadoopPage() {
   });
 
   return (
-    <main style={{ padding: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Hadoop Demo — Processed Summary</h1>
-        <SyncButton />
-      </div>
-      <p>
-        Data read from <code>hdfs_sync/</code>. Summary below is computed from synced detection JSON files.
-      </p>
+    <main className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Hadoop Data Summary</h1>
+            <p className="text-gray-500 mt-1">
+              Data dari sinkronisasi Supabase ke HDFS (folder <code className="bg-gray-100 px-1 rounded">hdfs_sync/</code>)
+            </p>
+          </div>
+          <SyncButton />
+        </div>
 
-      <section style={{ marginBottom: 20 }}>
-        <h2>Summary</h2>
-        <ul>
-          <li>Total detections: <strong>{total}</strong></li>
-          <li>Unique labels: <strong>{uniqueLabels}</strong></li>
-          <li>Top labels:
-            <ul>
-              {topLabels.map(([label, c]) => (
-                <li key={label}>{label}: {c}</li>
-              ))}
-            </ul>
-          </li>
-          <li>Average confidence: <strong>{avgConfidence !== undefined ? avgConfidence.toFixed(1) + '%' : 'N/A'}</strong></li>
-        </ul>
-      </section>
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard title="Total Detections" value={total} icon="🔍" color="emerald" />
+          <StatCard title="Unique Labels" value={uniqueLabels} icon="🏷️" color="blue" />
+          <StatCard title="Avg Confidence" value={avgConfidence ? `${avgConfidence.toFixed(1)}%` : 'N/A'} icon="📊" color="purple" />
+          <StatCard title="Files Synced" value={files.length} icon="📁" color="orange" />
+        </div>
 
-      <section style={{ marginBottom: 20 }}>
-        <h2>Recent items</h2>
-        {recent.length === 0 ? <p>No recent items.</p> : (
-          <ol>
-            {recent.map((it, i) => (
-              <li key={i}>
-                <strong>{normalizeLabel(it)}</strong>
-                {it.confidence !== undefined ? <span> — {normalizeConfidence(it.confidence)?.toFixed(1)}%</span> : null}
-                {it.timestamp ? <span> @ {it.timestamp}</span> : null}
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
-
-      <section style={{ marginBottom: 20 }}>
-        <h2>Trends (last 14 days)</h2>
-        {trend.length === 0 ? (
-          <p>No trend data.</p>
-        ) : (
-          <ul style={{ fontFamily: 'monospace' }}>
-            {(() => {
-              const max = Math.max(...trend.map((t) => t.count), 1);
-              return trend.map((t) => {
-                const barLen = Math.round((t.count / max) * 20);
-                const bar = '█'.repeat(barLen) + ' '.repeat(20 - barLen);
-                return (
-                  <li key={t.date} style={{ marginBottom: 6 }}>
-                    <strong>{t.date}</strong> — {t.count} detections{' '}
-                    {t.avgConfidence !== undefined ? `— ${t.avgConfidence.toFixed(1)}%` : ''}
-                    <div style={{ fontSize: 12 }}>{bar}</div>
-                  </li>
-                );
-              });
-            })()}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2>All files</h2>
-        {data.length === 0 ? (
-          <p>No JSON files found in hdfs_sync/.</p>
-        ) : (
-          data.map((d) => (
-            <section key={d.file} style={{ marginBottom: 12 }}>
-              <h3>{d.file}</h3>
-              {d.items.length === 0 ? (
-                <p>Empty or invalid JSON.</p>
-              ) : (
-                <ul>
-                  {d.items.map((it: Detection, idx: number) => (
-                    <li key={idx}>
-                      <strong>{normalizeLabel(it)}</strong>
-                      {it.confidence !== undefined ? (
-                        <span> — {normalizeConfidence(it.confidence)?.toFixed(1)}%</span>
-                      ) : null}
-                      {it.timestamp ? <span> @ {it.timestamp}</span> : null}
-                      {it.image_path ? <div style={{ fontSize: 12 }}>{it.image_path}</div> : null}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Top Labels */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span>🏆</span> Top Labels
+            </h2>
+            {topLabels.length === 0 ? (
+              <p className="text-gray-500">No data</p>
+            ) : (
+              <ul className="space-y-3">
+                {topLabels.map(([label, count]) => {
+                  const maxCount = topLabels[0][1];
+                  const percentage = (count / maxCount) * 100;
+                  return (
+                    <li key={label}>
+                      <div className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                        <span>{label}</span>
+                        <span>{count}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-emerald-500 h-2 rounded-full"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ))
-        )}
-      </section>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Recent Items */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span>🕒</span> Recent Detections
+            </h2>
+            {recent.length === 0 ? (
+              <p className="text-gray-500">No recent items</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {recent.map((it, i) => (
+                  <li key={i} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {normalizeLabel(it)}
+                        </p>
+                        {it.timestamp && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(it.timestamp).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                      {it.confidence && (
+                        <span className="text-sm font-semibold text-emerald-600">
+                          {normalizeConfidence(it.confidence)?.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Trends Chart */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span>📈</span> 14-Day Detection Trends
+          </h2>
+          {trend.length === 0 ? (
+            <p className="text-gray-500">No trend data</p>
+          ) : (
+            <div className="space-y-3">
+              {trend.map((t) => {
+                const maxCount = Math.max(...trend.map(t => t.count), 1);
+                const barWidth = (t.count / maxCount) * 100;
+                return (
+                  <div key={t.date} className="flex items-center gap-3">
+                    <div className="w-24 text-xs font-mono text-gray-500">{t.date}</div>
+                    <div className="flex-1">
+                      <div className="relative h-8 w-full bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="absolute inset-y-0 left-0 bg-emerald-500 rounded-full"
+                          style={{ width: `${barWidth}%` }}
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-800">
+                          {t.count} detections {t.avgConfidence ? `(${t.avgConfidence.toFixed(1)}%)` : ''}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* All Files Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span>📄</span> All Synced Files ({data.length})
+          </h2>
+          {data.length === 0 ? (
+            <p className="text-gray-500">No JSON files found in hdfs_sync/.</p>
+          ) : (
+            <div className="space-y-6">
+              {data.map((d) => (
+                <details key={d.file} className="group border-b border-gray-100 last:border-0 pb-4 last:pb-0">
+                  <summary className="cursor-pointer font-mono text-sm text-gray-700 hover:text-emerald-600 transition-colors list-none flex items-center gap-2">
+                    <span className="inline-block w-5 h-5 text-center group-open:rotate-90 transition-transform">▶</span>
+                    {d.file} ({d.items.length} items)
+                  </summary>
+                  <div className="mt-3 pl-7">
+                    {d.items.length === 0 ? (
+                      <p className="text-gray-500 text-sm">Empty or invalid JSON.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {d.items.map((it: Detection, idx: number) => (
+                          <li key={idx} className="bg-gray-50 rounded-lg p-3 text-sm">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-medium text-gray-800">
+                                  {normalizeLabel(it)}
+                                </span>
+                                {it.timestamp && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(it.timestamp).toLocaleString()}
+                                  </p>
+                                )}
+                                {it.image_path && (
+                                  <p className="text-xs text-gray-400 truncate mt-1">{it.image_path}</p>
+                                )}
+                              </div>
+                              {it.confidence && (
+                                <span className="text-xs font-semibold text-emerald-600">
+                                  {normalizeConfidence(it.confidence)?.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </main>
+  );
+}
+
+// Komponen StatCard (light theme)
+function StatCard({ title, value, icon, color }: { title: string; value: string | number; icon: string; color: 'emerald' | 'blue' | 'purple' | 'orange' }) {
+  const colorClasses = {
+    emerald: 'bg-emerald-100 text-emerald-600',
+    blue: 'bg-blue-100 text-blue-600',
+    purple: 'bg-purple-100 text-purple-600',
+    orange: 'bg-orange-100 text-orange-600',
+  };
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 transition-all hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+        </div>
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${colorClasses[color]}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
   );
 }
