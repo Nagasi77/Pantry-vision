@@ -681,61 +681,119 @@ export default function LandingPage() {
               </div>
             </section>
           )}
-
-          {/* Contact Support */}
-          <section
-            id="contact-support"
-            className="scroll-mt-28 bg-green-50 border border-green-100 rounded-[3rem] p-8 lg:p-10 text-center lg:text-left flex flex-col lg:flex-row items-center justify-between gap-6"
-          >
-            <div>
-              <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.3em] mb-3">
-                Contact Support
-              </p>
-
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-3">
-                Butuh bantuan menggunakan PantryVision?
-              </h3>
-
-              <p className="text-slate-500 font-medium max-w-2xl">
-                Hubungi tim support untuk bantuan login, aktivasi Smart Storage,
-                subscription, atau integrasi perangkat dengan dashboard.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-3xl border border-green-100 p-5 shadow-sm w-full lg:w-auto">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                Support
-              </p>
-
-              <p className="text-slate-900 font-black">
-                support@pantry-vision.com
-              </p>
-
-              <p className="text-sm text-slate-400 font-medium mt-1">
-                Senin sampai Jumat, 09.00 sampai 17.00
-              </p>
-            </div>
-          </section>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 bg-slate-950 text-white px-4 lg:px-10 py-8">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
-          <div>
-            <p className="font-black text-lg">
-              Pantry<span className="text-green-400">Vision</span>
-            </p>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-              Smart Food Storage
-            </p>
+<footer
+  className="relative text-white"
+  style={{ backgroundColor: "#0A1628" }}
+>
+  <div className="max-w-6xl mx-auto px-6 lg:px-10 py-8">
+
+    <div className="grid md:grid-cols-[1.3fr_1fr_1fr] gap-10">
+
+      {/* Logo */}
+      <div>
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: "#00A550" }}
+          >
+            <div
+              className="w-4 h-4 rounded-md"
+              style={{ backgroundColor: "#0A1628" }}
+            />
           </div>
 
-          <p className="text-sm text-slate-400 font-medium">
-            Copyrights © 2026 pantry-vision. All rights reserved.
-          </p>
+          <div>
+            <h2 className="text-xl font-bold">
+              Pantry<span className="text-green-500">Vision</span>
+            </h2>
+
+            <p className="text-[11px] tracking-[0.2em] text-slate-500">
+              SMART FOOD STORAGE
+            </p>
+          </div>
         </div>
-      </footer>
+
+        <p className="text-sm text-slate-400 leading-6 max-w-xs">
+          Kelola stok makanan lebih cerdas, pantau masa kedaluwarsa,
+          dan temukan rekomendasi resep berbasis AI untuk mengurangi food waste.
+        </p>
+      </div>
+
+      {/* Contact */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 text-green-500">
+          Contact
+        </h3>
+
+        <div className="space-y-3 text-sm">
+
+          <p className="text-slate-300">
+            Butuh bantuan? Tim PantryVision siap membantu Anda.
+          </p>
+
+          <a
+            href="mailto:support@pantry-vision.com"
+            className="block text-slate-300 hover:text-green-500 transition"
+          >
+            support@pantry-vision.com
+          </a>
+
+          <p className="text-slate-500">
+            Senin – Jumat
+            <br />
+            09.00 – 17.00 WIB
+          </p>
+
+        </div>
+      </div>
+
+      {/* Product */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 text-green-500">
+          Product
+        </h3>
+
+        <div className="space-y-2 text-sm">
+
+          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
+            Smart Storage
+          </a>
+
+          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
+            Expiry Tracker
+          </a>
+
+          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
+            Grocery Sync
+          </a>
+
+          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
+            AI Recipes
+          </a>
+
+          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
+            Multi Object Scan
+          </a>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* Copyright */}
+  <div className="border-t border-slate-800">
+    <div className="max-w-6xl mx-auto px-6 py-3">
+      <p className="text-center text-xs text-slate-500">
+        © 2026 PantryVision. All rights reserved.
+      </p>
+    </div>
+  </div>
+</footer>
 
       {/* Subscription Modal */}
       {showSubscriptionModal && (
