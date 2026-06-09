@@ -3,15 +3,17 @@ import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
+import { Eye, EyeOff } from "lucide-react"
 
 function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
 
-const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
@@ -20,7 +22,6 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     const email = (target.elements.namedItem("email") as HTMLInputElement).value
     const password = (target.elements.namedItem("password") as HTMLInputElement).value
 
-    // Melakukan sign-in via NextAuth
     const res = await signIn("credentials", {
       redirect: false,
       email,
@@ -29,15 +30,14 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     })
 
     if (!res?.error) {
-      // Jika berhasil, arahkan ke dashboard dan refresh untuk update session
       router.push(callbackUrl)
-      router.refresh() 
+      router.refresh()
     } else {
       setIsLoading(false)
-      // Memberikan feedback jika kredensial salah atau email belum diverifikasi
       setError("Email atau password salah")
     }
   }
+
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl py-10 px-6 shadow-2xl border border-white/5 sm:rounded-[2.5rem] sm:px-12 w-full max-w-md mx-auto">
       <div className="text-center mb-8">
@@ -54,16 +54,44 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
       )}
 
       <form onSubmit={handleLogin} className="space-y-4">
+        {/* Email */}
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email</label>
-          <input name="email" type="email" required placeholder="nama@email.com" className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all font-bold text-sm" />
+          <input
+            name="email"
+            type="email"
+            required
+            placeholder="nama@email.com"
+            className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all font-bold text-sm"
+          />
         </div>
+
+        {/* Password + toggle */}
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Password</label>
-          <input name="password" type="password" required placeholder="••••••••" className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all font-bold text-sm" />
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              required
+              placeholder="••••••••"
+              className="w-full px-6 py-4 pr-14 rounded-2xl bg-white/5 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all font-bold text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-green-400 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
-        
-        <button disabled={isLoading} className="w-full mt-2 bg-green-600 py-4 rounded-2xl font-black text-sm text-white shadow-xl shadow-green-900/20 hover:bg-green-500 transition-all disabled:opacity-50 uppercase tracking-widest">
+
+        <button
+          disabled={isLoading}
+          className="w-full mt-2 bg-green-600 py-4 rounded-2xl font-black text-sm text-white shadow-xl shadow-green-900/20 hover:bg-green-500 transition-all disabled:opacity-50 uppercase tracking-widest"
+        >
           {isLoading ? "Memproses..." : "Masuk"}
         </button>
 
@@ -73,9 +101,9 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
           <div className="flex-1 h-px bg-slate-800"></div>
         </div>
 
-        {/* SOSIAL LOGIN */}
+        {/* Social Login */}
         <div className="grid grid-cols-2 gap-4">
-          <button 
+          <button
             type="button"
             onClick={() => signIn("google", { callbackUrl })}
             className="group relative flex items-center justify-center py-3 rounded-2xl border border-slate-700 bg-white/5 hover:bg-white/10 transition-all overflow-hidden"
@@ -89,7 +117,7 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
             </svg>
           </button>
 
-          <button 
+          <button
             type="button"
             onClick={() => signIn("github", { callbackUrl })}
             className="group relative flex items-center justify-center py-3 rounded-2xl border border-slate-700 bg-white/5 hover:bg-white/10 transition-all overflow-hidden"
@@ -103,7 +131,10 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
       </form>
 
       <div className="mt-8 text-center text-sm text-slate-400 font-medium">
-        Belum punya akun? <Link href="/auth/register" className="text-green-400 hover:text-green-300 font-black underline underline-offset-4">Daftar Sekarang</Link>
+        Belum punya akun?{" "}
+        <Link href="/auth/register" className="text-green-400 hover:text-green-300 font-black underline underline-offset-4">
+          Daftar Sekarang
+        </Link>
       </div>
     </div>
   )

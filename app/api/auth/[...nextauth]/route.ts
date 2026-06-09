@@ -76,19 +76,28 @@ export const authOptions = {
       return true
     },
 
-    async jwt({ token, user, account }: any) {
+    async jwt({ token, user, account, trigger, session }: any) {
       if (user) {
         token.role = user.role || "user"
 
-        // Ambil UUID dari profiles berdasarkan email
+        // Ambil UUID dan avatar_url dari profiles berdasarkan email
         const { data: profile } = await supabaseAdmin
           .from('profiles')
-          .select('id')
+          .select('id, avatar_url')
           .eq('email', user.email)
           .single()
 
         token.id = profile?.id || user.id
+        // Simpan avatar: dari profiles > dari OAuth provider
+        token.picture = profile?.avatar_url || user.image || token.picture || null
       }
+
+      // Saat session di-update manual via update() dari client
+      if (trigger === "update" && session) {
+        if (session.image) token.picture = session.image
+        if (session.name) token.name = session.name
+      }
+
       return token
     },
 
@@ -96,6 +105,8 @@ export const authOptions = {
       if (session.user) {
         session.user.role = token.role
         session.user.id = token.id
+        // Selalu sync image dari token agar konsisten di semua halaman
+        if (token.picture) session.user.image = token.picture
       }
       return session
     },

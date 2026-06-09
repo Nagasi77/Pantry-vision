@@ -13,7 +13,9 @@ import {
   PauseCircle,
   PlayCircle,
 } from "lucide-react";
-import mqtt from "mqtt";
+// mqtt is imported dynamically to avoid Node.js built-in module errors on Vercel
+import type mqtt from "mqtt";
+type MqttClient = mqtt.MqttClient;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -162,7 +164,7 @@ export default function SensorPage() {
   // Sensor realtime (MQTT)
   const [jarak, setJarak] = useState(0);
   const [gasFromSensor, setGasFromSensor] = useState("Menunggu alat...");
-  const mqttClientRef = useRef<mqtt.MqttClient | null>(null);
+  const mqttClientRef = useRef<MqttClient | null>(null);
 
   // Hasil scan
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -190,25 +192,29 @@ export default function SensorPage() {
 
   // ── MQTT ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const client = mqtt.connect("ws://broker.hivemq.com:8000/mqtt");
-    mqttClientRef.current = client;
+    let client: MqttClient;
 
-    client.on("connect", () => {
-      client.subscribe("pantry/sensors");
-    });
+    import("mqtt").then((mqttModule) => {
+      client = mqttModule.default.connect("wss://broker.hivemq.com:8000/mqtt");
+      mqttClientRef.current = client;
 
-    client.on("message", (topic, message) => {
-      try {
-        if (topic === "pantry/sensors") {
-          const data = JSON.parse(message.toString());
-          if (data.jarak !== undefined) setJarak(data.jarak);
-          if (data.gas !== undefined) setGasFromSensor(data.gas);
-        }
-      } catch (_) {}
+      client.on("connect", () => {
+        client.subscribe("pantry/sensors");
+      });
+
+      client.on("message", (topic, message) => {
+        try {
+          if (topic === "pantry/sensors") {
+            const data = JSON.parse(message.toString());
+            if (data.jarak !== undefined) setJarak(data.jarak);
+            if (data.gas !== undefined) setGasFromSensor(data.gas);
+          }
+        } catch (_) {}
+      });
     });
 
     return () => {
-      client.end();
+      client?.end();
     };
   }, []);
 

@@ -2,17 +2,19 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ username: "", email: "", password: "" })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (form.password.length < 8) return setError("Password minimal 8 karakter")
-    
+
     setIsLoading(true)
     setError("")
 
@@ -52,40 +54,54 @@ export default function RegisterPage() {
       )}
 
       <form onSubmit={handleRegister} className="space-y-4">
-        {/* Input Username */}
+        {/* Username */}
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username</label>
-          <input 
-            type="text" required 
+          <input
+            type="text"
+            required
             className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none transition-all"
             value={form.username}
-            onChange={e => setForm({...form, username: e.target.value})}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
           />
         </div>
-        
-        {/* Input Email */}
+
+        {/* Email */}
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
-          <input 
-            type="email" required 
+          <input
+            type="email"
+            required
             className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none transition-all"
             value={form.email}
-            onChange={e => setForm({...form, email: e.target.value})}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
         </div>
 
-        {/* Input Password */}
+        {/* Password + toggle */}
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-          <input 
-            type="password" required 
-            className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none transition-all"
-            value={form.password}
-            onChange={e => setForm({...form, password: e.target.value})}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              className="w-full px-6 py-4 pr-14 rounded-2xl bg-white/5 border border-slate-700 text-white text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none transition-all"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-green-400 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-500 ml-1">Minimal 8 karakter</p>
         </div>
 
-        <button 
+        <button
           disabled={isLoading}
           className="w-full mt-4 bg-green-600 py-4 rounded-2xl font-black text-sm text-white shadow-xl hover:bg-green-500 transition-all disabled:opacity-50 uppercase tracking-widest"
         >
@@ -94,7 +110,10 @@ export default function RegisterPage() {
       </form>
 
       <div className="mt-8 text-center text-sm text-slate-400">
-        Sudah punya akun? <Link href="/auth/login" className="text-green-400 font-black underline underline-offset-4">Masuk</Link>
+        Sudah punya akun?{" "}
+        <Link href="/auth/login" className="text-green-400 font-black underline underline-offset-4">
+          Masuk
+        </Link>
       </div>
     </div>
   )
