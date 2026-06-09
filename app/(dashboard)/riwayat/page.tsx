@@ -272,7 +272,11 @@ export default function RiwayatScanPage() {
     try {
       setDeletingSessionId(pendingSessionId);
       const res = await fetch(`/api/scan-sessions/${pendingSessionId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.error || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
       setSessions((prev) => prev.filter((s) => s.id !== pendingSessionId));
       setTotal((prev) => Math.max(0, prev - 1));
       setExpandedRows((prev) => {
@@ -282,9 +286,9 @@ export default function RiwayatScanPage() {
       });
       if (selectedSession?.id === pendingSessionId) setSelectedSession(null);
       showToast("Sesi berhasil dihapus", "success");
-    } catch (err) {
+    } catch (err: any) {
       console.error("delete session error:", err);
-      showToast("Gagal menghapus sesi. Periksa koneksi atau hak akses.", "error");
+      showToast(`Gagal menghapus sesi: ${err?.message || "Periksa koneksi atau RLS policy Supabase."}`, "error");
     } finally {
       setDeletingSessionId(null);
       setPendingSessionId(null);

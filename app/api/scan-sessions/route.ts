@@ -1,10 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Force route handler to never be cached by Next.js
+export const dynamic = "force-dynamic";
+
+// Gunakan service role key agar bisa hapus file dari Storage
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 );
+
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "scan_images";
+
+/**
+ * Ekstrak nama file dari Supabase Storage public URL.
+ * Format URL: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<filename>
+ */
+function extractStoragePath(imageUrl: string): string | null {
+  try {
+    const url = new URL(imageUrl);
+    const parts = url.pathname.split(`/public/${STORAGE_BUCKET}/`);
+    if (parts.length === 2 && parts[1]) {
+      return decodeURIComponent(parts[1]);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Hapus file-file di storage untuk sejumlah sessions.
+ * Tiap session bisa punya scan_{id}.jpg dan annotated_{id}.jpg.
+ */
+async function deleteStorageFiles(sessions: { id: string; image_url: string | null }[]) {
+  const paths: string[] = [];
+
+  for (const s of sessions) {
+    if (s.image_url) {
+      const p = extractStoragePath(s.image_url);
+      if (p) paths.push(p);
+    }
+    // Selalu coba hapus annotated juga
+    paths.push(`scan_${s.id}.jpg`);
+    paths.push(`annotated_${s.id}.jpg`);
+  }
+
+  if (paths.length === 0) return;
+
+  // Supabase storage remove maksimal ~1000 file per request, batch jika perlu
+  const BATCH = 500;
+  for (let i = 0; i < paths.length; i += BATCH) {
+    const batch = paths.slice(i, i + BATCH);
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).remove(batch);
+    if (error) console.warn("Storage batch delete warning:", error.message);
+  }
+}
 
 // GET /api/scan-sessions?limit=50&offset=0
 export async function GET(req: NextRequest) {
@@ -64,6 +115,19 @@ export async function DELETE(req: NextRequest) {
     const { mode } = body;
 
     if (mode === "all") {
+      // Ambil semua session dulu untuk hapus storage
+      const { data: allSessions } = await supabase
+        .from("scan_sessions")
+        .select("id, image_url");
+
+      if (allSessions && allSessions.length > 0) {
+        await deleteStorageFiles(allSessions);
+        const ids = allSessions.map((s) => s.id);
+        // Hapus child tables sebelum parent (urutan penting karena foreign key)
+        await supabase.from("pantry_items").delete().in("scan_session_id", ids);
+        await supabase.from("scan_detections").delete().in("scan_session_id", ids);
+      }
+
       const { error } = await supabase.from("scan_sessions").delete().neq("id", "");
       if (error) throw error;
       return NextResponse.json({ success: true, message: "Semua riwayat scan dihapus" });
@@ -86,6 +150,20 @@ export async function DELETE(req: NextRequest) {
         cutoffDate = new Date(now.getTime() - value * 60 * 60 * 1000);
       }
 
+      // Ambil sessions yang akan dihapus
+      const { data: toDelete } = await supabase
+        .from("scan_sessions")
+        .select("id, image_url")
+        .lt("scanned_at", cutoffDate.toISOString());
+
+      if (toDelete && toDelete.length > 0) {
+        await deleteStorageFiles(toDelete);
+        const ids = toDelete.map((s) => s.id);
+        // Hapus child tables sebelum parent (urutan penting karena foreign key)
+        await supabase.from("pantry_items").delete().in("scan_session_id", ids);
+        await supabase.from("scan_detections").delete().in("scan_session_id", ids);
+      }
+
       const { error } = await supabase
         .from("scan_sessions")
         .delete()
@@ -106,6 +184,21 @@ export async function DELETE(req: NextRequest) {
 
       const start = new Date(`${start_date}T00:00:00.000Z`);
       const end = new Date(`${end_date}T23:59:59.999Z`);
+
+      // Ambil sessions yang akan dihapus
+      const { data: toDelete } = await supabase
+        .from("scan_sessions")
+        .select("id, image_url")
+        .gte("scanned_at", start.toISOString())
+        .lte("scanned_at", end.toISOString());
+
+      if (toDelete && toDelete.length > 0) {
+        await deleteStorageFiles(toDelete);
+        const ids = toDelete.map((s) => s.id);
+        // Hapus child tables sebelum parent (urutan penting karena foreign key)
+        await supabase.from("pantry_items").delete().in("scan_session_id", ids);
+        await supabase.from("scan_detections").delete().in("scan_session_id", ids);
+      }
 
       const { error } = await supabase
         .from("scan_sessions")
