@@ -15,10 +15,13 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
     }),
     CredentialsProvider({
       name: "Credentials",
@@ -54,8 +57,8 @@ export const authOptions = {
 
   callbacks: {
     async signIn({ user, account }: any) {
-      // Hanya proses auto-create profile untuk OAuth providers
-      if (account?.provider === "google" || account?.provider === "github") {
+      // Auto-create profile untuk user Google OAuth
+      if (account?.provider === "google") {
         const { data: existingProfile } = await supabaseAdmin
           .from('profiles')
           .select('id')
@@ -63,7 +66,6 @@ export const authOptions = {
           .single()
 
         if (!existingProfile) {
-          // Auto-create profile baru untuk user OAuth
           await supabaseAdmin
             .from('profiles')
             .insert({
@@ -113,12 +115,15 @@ export const authOptions = {
   },
 
   pages: {
-    signIn: "/auth/login",  // ✅ fix path
+    signIn: "/auth/login",
   },
 
   session: {
     strategy: "jwt" as const,
   },
+
+  // Wajib untuk deployment di Vercel/proxy agar redirect URI pakai https://
+  useSecureCookies: process.env.NODE_ENV === "production",
 
   secret: process.env.NEXTAUTH_SECRET,
 }
