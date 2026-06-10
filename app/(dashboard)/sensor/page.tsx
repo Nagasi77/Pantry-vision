@@ -195,7 +195,7 @@ export default function SensorPage() {
     let client: MqttClient;
 
     import("mqtt").then((mqttModule) => {
-      client = mqttModule.default.connect("wss://broker.hivemq.com:8000/mqtt");
+      client = mqttModule.default.connect("wss://broker.hivemq.com:8884/mqtt");
       mqttClientRef.current = client;
 
       client.on("connect", () => {
