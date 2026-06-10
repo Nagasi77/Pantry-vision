@@ -258,7 +258,7 @@ export default function SensorPage() {
   const triggerHardwareScan = useCallback(() => {
     setIsPaused(false); // resume otomatis saat jepret
     mqttClientRef.current?.publish("pantry/perintah", "AMBIL_FOTO");
-    setTimeout(fetchLatestScan, 3500);
+    setTimeout(fetchLatestScan, 10000);
   }, [fetchLatestScan]);
 
   // ── Render ────────────────────────────────────────────────────────────
