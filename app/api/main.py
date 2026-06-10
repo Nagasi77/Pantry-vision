@@ -34,9 +34,9 @@ app = FastAPI(title="PantryVision AI Backend")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ── YOLO Model Paths ──────────────────────────────────────────────────────────
-MODEL_IOT_PATH = os.getenv("YOLO_MODEL_IOT_PATH", 
+MODEL_IOT_PATH = os.getenv("YOLO_MODEL_IOT_PATH",
     os.path.join(_here, "models", "best_fruit_freshness_iot_yolov8.pt"))
-MODEL_SCAN_PATH = os.getenv("YOLO_MODEL_SCAN_PATH", 
+MODEL_SCAN_PATH = os.getenv("YOLO_MODEL_SCAN_PATH",
     os.path.join(_here, "models", "best_fruit_freshness_multiobject_100epoch.pt"))
 
 yolo_model_iot = None
@@ -414,6 +414,68 @@ async def predict_scan_annotated(
         "has_rotten": any(d["freshness_status"] == "Busuk" for d in detections),
     }
 
+@app.post("/predict/iot")
+async def predict_iot(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...)
+):
+    contents = await file.read()
+    session_id = str(uuid.uuid4())
+    
+    image = Image.open(io.BytesIO(contents)).convert("RGB")
+    model_iot = get_model_iot()
+    results = model_iot(image, conf=0.35, verbose=False)
+    
+    detections = []
+    for result in results:
+        for box in result.boxes:
+            cls_idx = int(box.cls[0])
+            conf = float(box.conf[0])
+            raw_label = _get_label(cls_idx, model_iot)
+            if raw_label is None:
+                continue
+            parsed = parse_label(raw_label)
+            detections.append({**parsed, "confidence": conf})
+            
+    publish_kondisi(detections)
+    image_url = upload_image_to_supabase(contents, f"iot_{session_id}.jpg")
+    background_tasks.add_task(save_scan_session, session_id, image_url, detections, "IoT")
+    background_tasks.add_task(replace_pantry_items, detections, session_id)
+    
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "image_url": image_url,
+        "item_count": len(detections)
+    }
+
+@app.get("/api/ai/iot-latest")
+async def get_latest_iot_session():
+    if not supabase:
+        return {"error": "Supabase tidak tersambung"}
+    
+    try:
+        res = supabase.table("scan_sessions") \
+            .select("*") \
+            .eq("device_source", "IoT") \
+            .order("scanned_at", desc=True) \
+            .limit(1).execute()
+        
+        if not res.data:
+            return {"session": None, "detections": []}
+            
+        session_data = res.data[0]
+        
+        det_res = supabase.table("scan_detections") \
+            .select("*") \
+            .eq("scan_session_id", session_data["id"]).execute()
+            
+        return {
+            "session": session_data,
+            "detections": det_res.data
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/health")
 async def health_check():
