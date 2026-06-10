@@ -224,7 +224,7 @@ export default function SensorPage() {
     setIsScanning(true);
     setScanError(null);
     try {
-      const res = await fetch("/api/ai/iot-latest");
+      const res = await fetch("/api/ai/iot-latest" + Date.now());
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
