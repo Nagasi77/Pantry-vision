@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, Activity, Scan, History, BookOpen, User, ChefHat } from 'lucide-react'
+import { LayoutDashboard, Package, Activity, Scan, History, BookOpen, User, ChefHat, BookText } from 'lucide-react'
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -31,6 +31,7 @@ export default function Sidebar() {
         <Link href="/riwayat" className={navItemStyle('/riwayat')}><History size={20}/> <span>Riwayat Scan</span></Link>
         <Link href="/resep" className={navItemStyle('/resep')}><ChefHat size={20}/> <span>Rekomendasi Resep</span></Link>
         <Link href="/nutridex" className={navItemStyle('/nutridex')}><BookOpen size={20}/> <span>Nutridex</span></Link>
+        <Link href="/hadoop" className={navItemStyle('/hadoop')}><BookText size={20}/> <span>Hadoop</span></Link>
 
 
         <div className="pt-1 border-t border-slate-100 mt-8">
