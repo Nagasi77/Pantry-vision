@@ -8,3 +8,4 @@ paho-mqtt
 python-dotenv
 python-multipart
 supabase
+httpx
