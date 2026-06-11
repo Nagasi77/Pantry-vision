@@ -128,6 +128,31 @@ def publish_kondisi(detections: list[dict]):
     except Exception:
         pass
 
+async def trigger_spoilage_alert(detections: list[dict]):
+    """Kirim email alert otomatis ke semua user jika ada bahan busuk terdeteksi."""
+    rotten = [d for d in detections if d["freshness_status"] == "Busuk"]
+    if not rotten:
+        return
+    import httpx
+    NEXTJS_URL = os.getenv("NEXTJS_URL", "https://pantry-vision-eight.vercel.app")
+    now = datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M WIB")
+    for item in rotten:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(
+                    f"{NEXTJS_URL}/api/alert/spoilage",
+                    json={
+                        "type": "freshness",
+                        "itemName": item["item_name"],
+                        "freshnessStatus": item["freshness_status"],
+                        "confidence": round(item["confidence"] * 100, 1),
+                        "scannedAt": now,
+                    },
+                )
+            print(f"[Alert] Email terkirim: {item['item_name']} busuk")
+        except Exception as e:
+            print(f"[Alert] Gagal kirim email untuk {item['item_name']}: {e}")
+
 # ── Supabase Helpers (ONLY for non-landing) ───────────────────────────────────
 def upload_image_to_supabase(image_bytes: bytes, filename: str) -> str | None:
     if not supabase:
@@ -277,6 +302,7 @@ async def predict_scan(
     image_url = upload_image_to_supabase(contents, f"scan_{session_id}.jpg")
     background_tasks.add_task(save_scan_session, session_id, image_url, detections, source, gas, jarak)
     background_tasks.add_task(replace_pantry_items, detections, session_id)
+    background_tasks.add_task(trigger_spoilage_alert, detections)
     return {
         "status": "success",
         "session_id": session_id,
@@ -394,6 +420,7 @@ async def predict_scan_annotated(
     ann_url = upload_image_to_supabase(bytes(buffer), f"annotated_{session_id}.jpg")
     background_tasks.add_task(save_scan_session, session_id, ann_url, detections, source, gas, jarak)
     background_tasks.add_task(replace_pantry_items, detections, session_id)
+    background_tasks.add_task(trigger_spoilage_alert, detections)
     return {
         "status": "success",
         "session_id": session_id,
