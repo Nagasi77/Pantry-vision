@@ -17,6 +17,8 @@ import {
   Headphones,
   X,
   Check,
+  Mail,
+  Clock,
 } from "lucide-react";
 
 type Detection = {
@@ -684,113 +686,135 @@ export default function LandingPage() {
         </div>
       </main>
 
-<footer
-  className="relative text-white"
-  style={{ backgroundColor: "#0A1628" }}
->
-  <div className="max-w-6xl mx-auto px-6 lg:px-10 py-8">
+<footer className="relative text-slate-300 bg-gradient-to-b from-slate-950 to-slate-900 border-t border-slate-900">
+  {/* Modern gradient top border */}
+  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-green-500/40 to-transparent" />
 
-    <div className="grid md:grid-cols-[1.3fr_1fr_1fr] gap-10">
-
-      {/* Logo */}
-      <div>
-        <div className="flex items-center gap-3 mb-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: "#00A550" }}
-          >
-            <div
-              className="w-4 h-4 rounded-md"
-              style={{ backgroundColor: "#0A1628" }}
-            />
+  <div className="max-w-6xl mx-auto px-6 lg:px-10 py-16">
+    <div className="grid md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1.2fr_1.3fr] gap-12">
+      {/* Brand & Status */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-600 shadow-lg shadow-green-500/10">
+            <div className="w-4 h-4 rounded-md bg-slate-950" />
           </div>
-
           <div>
-            <h2 className="text-xl font-bold">
+            <h2 className="text-xl font-black text-white tracking-tight leading-none">
               Pantry<span className="text-green-500">Vision</span>
             </h2>
-
-            <p className="text-[11px] tracking-[0.2em] text-slate-500">
-              SMART FOOD STORAGE
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500 mt-1">
+              Smart Food Storage
             </p>
           </div>
         </div>
 
-        <p className="text-sm text-slate-400 leading-6 max-w-xs">
+        <p className="text-sm text-slate-400 leading-relaxed">
           Kelola stok makanan lebih cerdas, pantau masa kedaluwarsa,
           dan temukan rekomendasi resep berbasis AI untuk mengurangi food waste.
         </p>
       </div>
 
-      {/* Contact */}
+      {/* Product / Quick Links */}
       <div>
-        <h3 className="text-lg font-semibold mb-4 text-green-500">
-          Contact
-        </h3>
-
-        <div className="space-y-3 text-sm">
-
-          <p className="text-slate-300">
-            Butuh bantuan? Tim PantryVision siap membantu Anda.
-          </p>
-
-          <a
-            href="mailto:support@pantry-vision.com"
-            className="block text-slate-300 hover:text-green-500 transition"
-          >
-            support@pantry-vision.com
-          </a>
-
-          <p className="text-slate-500">
-            Senin – Jumat
-            <br />
-            09.00 – 17.00 WIB
-          </p>
-
-        </div>
-      </div>
-
-      {/* Product */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4 text-green-500">
+        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6">
           Product
         </h3>
+        <ul className="space-y-3.5 text-sm">
+          {[
+            { name: "Smart Storage", href: "#" },
+            { name: "Expiry Tracker", href: "#" },
+            { name: "Grocery Sync", href: "#" },
+            { name: "AI Recipes", href: "#" },
+            { name: "Multi Object Scan", href: "#" },
+          ].map((item, index) => (
+            <li key={index}>
+              <a
+                href={item.href}
+                className="group flex items-center text-slate-400 hover:text-green-400 transition-all duration-200"
+              >
+                <span className="w-0 group-hover:w-3 opacity-0 group-hover:opacity-100 transition-all duration-300 text-green-500 text-xs font-bold">
+                  →&nbsp;
+                </span>
+                {item.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-        <div className="space-y-2 text-sm">
+      {/* Contact Support */}
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6">
+            Contact Support
+          </h3>
+          <div className="space-y-4 text-sm text-slate-400">
+            <div className="flex items-start gap-3">
+              <Headphones size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+              <p className="leading-relaxed">
+                Butuh bantuan? Tim PantryVision siap membantu Anda.
+              </p>
+            </div>
 
-          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
-            Smart Storage
-          </a>
+            <a
+              href="mailto:support@pantry-vision.com"
+              className="inline-flex items-center gap-2.5 text-slate-300 hover:text-green-400 transition-colors group"
+            >
+              <Mail size={18} className="text-green-500 group-hover:scale-110 transition-transform" />
+              <span className="border-b border-dashed border-slate-700 group-hover:border-green-500/50 pb-0.5">
+                support@pantry-vision.com
+              </span>
+            </a>
 
-          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
-            Expiry Tracker
-          </a>
-
-          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
-            Grocery Sync
-          </a>
-
-          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
-            AI Recipes
-          </a>
-
-          <a href="#" className="block text-slate-300 hover:text-green-500 transition">
-            Multi Object Scan
-          </a>
-
+            <div className="flex items-start gap-3">
+              <Clock size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+              <p className="leading-relaxed">
+                Senin – Jumat
+                <br />
+                <span className="text-slate-500 text-xs font-semibold">09.00 – 17.00 WIB</span>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Newsletter */}
+      <div className="space-y-4">
+        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-2">
+          Newsletter
+        </h3>
+        <p className="text-sm text-slate-400 leading-relaxed">
+          Dapatkan tips kurangi food waste dan pembaruan sistem.
+        </p>
+        <div className="flex flex-col gap-2.5">
+          <input
+            type="email"
+            placeholder="Alamat email Anda..."
+            className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-800 focus:border-green-500/50 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-green-500/50 placeholder-slate-600 transition-all"
+          />
+          <button
+            type="button"
+            className="w-full py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-green-900/20"
+          >
+            Kirim
+          </button>
+        </div>
+      </div>
     </div>
-
   </div>
 
-  {/* Copyright */}
-  <div className="border-t border-slate-800">
-    <div className="max-w-6xl mx-auto px-6 py-3">
-      <p className="text-center text-xs text-slate-500">
-        © 2026 PantryVision. All rights reserved.
-      </p>
+  {/* Copyright / Bottom Bar */}
+  <div className="border-t border-slate-900 bg-slate-950/40">
+    <div className="max-w-6xl mx-auto px-6 lg:px-10 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <p>© 2026 PantryVision. All rights reserved.</p>
+      <div className="flex gap-6">
+        <a href="#" className="hover:text-slate-300 transition-colors">
+          Privacy Policy
+        </a>
+        <a href="#" className="hover:text-slate-300 transition-colors">
+          Terms of Service
+        </a>
+      </div>
     </div>
   </div>
 </footer>
