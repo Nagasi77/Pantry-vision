@@ -4,7 +4,7 @@
  *
  * Board   : AI Thinker ESP32-CAM
  * Library : PubSubClient, ESP32 Arduino Core
- * Server  : https://pantry-vision-app-2026-eqbvdnfwhwf8cqhc.indonesiacentral-01.azurewebsites.net
+ * Server  : https://pantry-vision-app-2026-eqbvdnfwhwf8cqhc.indonesiacentral-01.azurewebsites.net/predict/iot
  *
  */
 
@@ -43,7 +43,6 @@ const int   mqtt_port   = 1883;
 
 // ✅ FIX: URL Azure (HTTPS) — ganti dari IP lokal laptop
 const char* azureServerUrl = "https://pantry-vision-app-2026-eqbvdnfwhwf8cqhc.indonesiacentral-01.azurewebsites.net/predict/iot";
-
 // ── Globals ──────────────────────────────────────────────────────────────────
 WiFiClient   espClient;
 PubSubClient mqttClient(espClient);
@@ -67,7 +66,7 @@ bool kirimFoto(camera_fb_t* fb) {
   String footer = CRLF + "--" + boundary + "--" + CRLF;
 
   size_t   totalLen = header.length() + fb->len + footer.length();
-  uint8_t* body     = (uint8_t*)malloc(totalLen);
+  uint8_t* body     = (uint8_t*)ps_malloc(totalLen);
 
   if (!body) {
     Serial.println("[HTTP] malloc gagal!");
