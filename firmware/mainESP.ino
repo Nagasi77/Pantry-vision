@@ -4,7 +4,11 @@
  *
  * Board   : ESP32 DevKit / WROOM
  * Library : PubSubClient, Adafruit SSD1306, Adafruit GFX
-
+ *
+ * PERUBAHAN dari versi sebelumnya:
+ *   1. Anti-spam: debounce + hysteresis + cooldown
+ *   2. isPaused dikendalikan dari dashboard via MQTT (PAUSE/RESUME)
+ *   3. Kirim field "paused" di JSON sensor
  */
 
 #include <WiFi.h>
@@ -268,6 +272,7 @@ void loop() {
         debounceCount = 0;
       }
     }
+    // Zona 6–10cm: diam, tidak trigger tidak reset
   }
 
   // ── Kirim data sensor setiap 3 detik ───────────────────────────────────────
