@@ -285,7 +285,6 @@ void loop() {
     mqttClient.publish("pantry/sensors", json.c_str());
     Serial.printf("[SENSOR] %s\n", json.c_str());
   }
-
   updateOLED(jarak, nilaiGas, statusModel);
   delay(100);
 }
